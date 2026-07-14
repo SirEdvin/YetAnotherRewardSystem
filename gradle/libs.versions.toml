@@ -49,10 +49,14 @@ byteBuddy = "1.14.2"
 hamcrest = "2.2"
 jqwik = "1.7.2"
 junit = "5.9.2"
+testiarium = "0.1.0"
 
 
 [libraries]
 # Base libraries
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+testiarium-core = { module = "site.siredvin:testiarium-core-1.20.1", version.ref = "testiarium" }
+testiarium-forge = { module = "site.siredvin:testiarium-forge-1.20.1", version.ref = "testiarium" }
 kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-atomicfu = {module = "org.jetbrains.kotlinx:atomicfu-jvm", version.ref = "kotlin-atomicfu"}

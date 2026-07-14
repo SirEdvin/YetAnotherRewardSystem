@@ -65,12 +65,15 @@ object RewardShopTrades {
 
     @Synchronized
     fun replace(newTrades: Collection<RewardShopTrade>) {
+        val duplicate = newTrades.groupingBy { it.id }.eachCount().entries.firstOrNull { it.value > 1 }?.key
+        require(duplicate == null) { "Duplicate reward shop trade ID: $duplicate" }
         val byId = newTrades.associateBy { it.id }
-        require(byId.size == newTrades.size) { "Reward shop trade IDs must be unique" }
         trades = byId
     }
 
     fun all(): Collection<RewardShopTrade> = trades.values
+
+    fun find(id: String): RewardShopTrade? = trades[id]
 }
 
 class RewardShopTradeBuilder internal constructor(
@@ -79,7 +82,12 @@ class RewardShopTradeBuilder internal constructor(
     private val stages = mutableListOf<RewardShopTradeStage>()
 
     @JvmOverloads
-    fun simple(purchases: Number, firstCost: ItemStack, result: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = stage(purchases.toInt().toStageLimit(), { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
+    fun simple(purchases: Number, firstCost: ItemStack, result: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder {
+        validateFixedStack(firstCost, "first cost")
+        validateFixedStack(result, "result")
+        secondCost?.let { validateFixedStack(it, "second cost") }
+        return stage(purchases.toInt().toStageLimit(), { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
+    }
 
     @JvmOverloads
     fun dynamic(
@@ -111,6 +119,10 @@ class RewardShopTradeBuilder internal constructor(
         this == -1 -> null
         this > 0 -> this
         else -> throw IllegalArgumentException("Trade stages must have a positive limit or -1 for unlimited")
+    }
+
+    private fun validateFixedStack(stack: ItemStack, name: String) {
+        require(!stack.isEmpty && stack.count in 1..stack.maxStackSize) { "Reward shop trade $id has an invalid $name stack" }
     }
 }
 

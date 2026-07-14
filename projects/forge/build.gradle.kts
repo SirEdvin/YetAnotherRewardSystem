@@ -7,6 +7,11 @@ plugins {
     id("site.siredvin.forge")
 }
 
+val testiariumVersion = libs.versions.testiarium.get()
+val testiariumCore = configurations.detachedConfiguration(
+    dependencies.create(fg.deobf("site.siredvin:testiarium-core-1.20.1:$testiariumVersion@jar")),
+)
+
 baseShaking {
     projectPart.set("forge")
     integrationRepositories.set(true)
@@ -25,6 +30,18 @@ forgeShaking {
         ),
     )
     shake()
+}
+
+val testMod = sourceSets.create("testMod") {
+    resources.srcDir(layout.buildDirectory.dir("generated/testiarium-core"))
+    compileClasspath += sourceSets.main.get().compileClasspath
+    compileClasspath += sourceSets.main.get().output
+    compileClasspath += project(":core").sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    runtimeClasspath += sourceSets.main.get().output
+    runtimeClasspath += project(":core").sourceSets.main.get().output
+    compileClasspath += testiariumCore
+    runtimeClasspath += testiariumCore
 }
 
 repositories {
@@ -52,6 +69,40 @@ dependencies {
     implementation(fg.deobf(libs.rhino.forge))
 
     libs.bundles.externalMods.forge.runtime.get().map { runtimeOnly(fg.deobf(it)) }
+
+}
+
+val unpackTestiariumCore = tasks.register<Sync>("unpackTestiariumCore") {
+    from(testiariumCore.map(::zipTree))
+    into(layout.buildDirectory.dir("generated/testiarium-core"))
+}
+tasks.named(testMod.processResourcesTaskName) {
+    dependsOn(unpackTestiariumCore)
+}
+
+minecraft {
+    runs {
+        create("clientGameTest") {
+            parent(runs.getByName("client"))
+            workingDirectory(file("run/client-gametest"))
+            property("forge.enabledGameTestNamespaces", "yars_testmod")
+            property("testiarium.client", "true")
+            property("testiarium.tags", "client")
+            property("testiarium.structures", layout.buildDirectory.dir("resources/testMod/gameteststructures").get().asFile.absolutePath)
+            property("testiarium.gametest-report", layout.buildDirectory.file("test-results/client-gametest.xml").get().asFile.absolutePath)
+            property("testiarium.screenshots", layout.buildDirectory.get().asFile.absolutePath)
+            jvmArgs("-ea")
+            mods {
+                create("yars") {
+                    source(sourceSets.main.get())
+                    source(project(":core").sourceSets.main.get())
+                }
+                create("yars_testmod") {
+                    source(testMod)
+                }
+            }
+        }
+    }
 }
 
 // modPublishing {

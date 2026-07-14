@@ -24,6 +24,11 @@ dependencies {
     implementation(libs.bundles.kotlin)
     implementation(libs.bundles.common)
     api(libs.bundles.apicommon)
+    testImplementation(libs.junit.jupiter)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 publishingShaking {

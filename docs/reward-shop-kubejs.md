@@ -5,9 +5,9 @@ Register trades in `kubejs/server_scripts`, then run `/reload` or restart the se
 ```js
 RewardShopEvents.trades(event => {
   event.trade('basic_diamonds')
-    .simple(4, Item.of('minecraft:diamond'), Item.of('minecraft:emerald'))
-    .dynamic(3, index => Item.of('minecraft:diamond'), index => Item.of('minecraft:emerald', 2 ** index))
-    .dynamic(-1, index => Item.of('minecraft:diamond'), index => Item.of('minecraft:iron_ingot', 48 + index * 16))
+    .simple(4, Item.of('minecraft:emerald'), Item.of('minecraft:diamond'))
+    .dynamic(3, index => Item.of('minecraft:emerald', 2 ** index), index => Item.of('minecraft:diamond'))
+    .dynamic(-1, index => Item.of('minecraft:iron_ingot', Math.min(64, 48 + index * 16)), index => Item.of('minecraft:diamond'))
 })
 ```
 

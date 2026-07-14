@@ -2,7 +2,6 @@ package site.siredvin.yars
 
 import dev.latvian.mods.kubejs.core.EntityKJS
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
@@ -13,8 +12,6 @@ import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import site.siredvin.broccolium.ForgeBroccolium
 import site.siredvin.yars.common.configuration.ConfigHolder
-import site.siredvin.yars.common.rewardshop.RewardShopMenu
-import site.siredvin.yars.common.rewardshop.RewardShopMenus
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.forge.ForgeModRecipeIngredients
 import site.siredvin.yars.forge.YarsForgePlatform
@@ -30,8 +27,6 @@ object YarsForge {
     val itemsRegistry: DeferredRegister<Item> = DeferredRegister.create(ForgeRegistries.ITEMS, YarsCore.MOD_ID)
     val creativeTabRegistry: DeferredRegister<CreativeModeTab> =
         DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB.key(), YarsCore.MOD_ID)
-    private val menuRegistry: DeferredRegister<MenuType<*>> = DeferredRegister.create(ForgeRegistries.MENU_TYPES, YarsCore.MOD_ID)
-    private val rewardShopMenu = menuRegistry.register("reward_shop") { MenuType(::RewardShopMenu, net.minecraft.world.flag.FeatureFlags.VANILLA_SET) }
 
     init {
         ForgeBroccolium.sayHi()
@@ -44,11 +39,9 @@ object YarsForge {
         blocksRegistry.register(eventBus)
         itemsRegistry.register(eventBus)
         creativeTabRegistry.register(eventBus)
-        menuRegistry.register(eventBus)
     }
 
     @Suppress("UNUSED_PARAMETER")
     fun commonSetup(event: FMLCommonSetupEvent) {
-        RewardShopMenus.configure(rewardShopMenu.get())
     }
 }
