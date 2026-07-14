@@ -11,4 +11,4 @@ RewardShopEvents.trades(event => {
 })
 ```
 
-Use a positive count to limit a stage or `-1` for the final unlimited stage. `dynamic` receives a one-based purchase index within that stage. Completed counts are stored in `player.persistentData.yars.reward_shop.trades` under the trade ID. Missing or invalid values resolve as zero.
+`simple` and `dynamic` take the payment first and the reward second. Use a positive count to limit a stage or `-1` for the final unlimited stage. `dynamic` receives a one-based purchase index within that stage. Completed counts are stored in `player.persistentData.yars.reward_shop.trades` under the trade ID. Missing or invalid values resolve as zero.

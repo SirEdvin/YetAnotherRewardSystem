@@ -10,6 +10,8 @@ timeout 120s ./gradlew :core:build :fabric:build :forge:build
 
 Use a longer timeout only when a task requires it, and terminate long-running `runClient` or `runServer` tasks explicitly after collecting the required logs.
 
+Never manually create or edit files under `src/generated`; regenerate them with the appropriate Gradle datagen task.
+
 ## KubeJS Smoke Tests
 
 Run KubeJS tests against the loader's development server and inspect the server log for script errors.
