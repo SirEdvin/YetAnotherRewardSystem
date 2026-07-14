@@ -64,7 +64,7 @@ class RewardShopMerchant(
                 resolved.firstCost,
                 resolved.secondCost ?: ItemStack.EMPTY,
                 resolved.result,
-                1,
+                0,
                 1,
                 0,
                 0f,
