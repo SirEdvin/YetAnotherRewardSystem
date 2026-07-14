@@ -28,8 +28,8 @@ import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.levelgen.WorldOptions
 import net.minecraft.world.level.levelgen.presets.WorldPresets
 import net.minecraftforge.client.event.ScreenEvent
-import net.minecraftforge.event.TickEvent
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.event.TickEvent
 import org.slf4j.LoggerFactory
 import site.siredvin.testiarium.api.Timeouts
 import site.siredvin.yars.testmod.client.isRenderingStable

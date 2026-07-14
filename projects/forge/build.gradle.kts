@@ -69,7 +69,6 @@ dependencies {
     implementation(fg.deobf(libs.rhino.forge))
 
     libs.bundles.externalMods.forge.runtime.get().map { runtimeOnly(fg.deobf(it)) }
-
 }
 
 val unpackTestiariumCore = tasks.register<Sync>("unpackTestiariumCore") {

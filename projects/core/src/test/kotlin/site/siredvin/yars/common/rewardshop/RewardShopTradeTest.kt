@@ -1,5 +1,7 @@
 package site.siredvin.yars.common.rewardshop
 
+import net.minecraft.SharedConstants
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -14,6 +16,7 @@ class RewardShopTradeTest {
         @JvmStatic
         @BeforeAll
         fun bootstrapMinecraft() {
+            SharedConstants.tryDetectVersion()
             Bootstrap.bootStrap()
         }
     }
@@ -29,6 +32,25 @@ class RewardShopTradeTest {
         assertEquals(Items.EMERALD, trade.resolve(1)!!.firstCost.item)
         assertEquals(4, trade.resolve(2)!!.firstCost.count)
         assertNull(trade.resolve(3))
+    }
+
+    @Test
+    fun `persisted purchase count advances through multistep limits`() {
+        val trade = RewardShopTradeRegistration().trade("limited_trade")
+            .simple(2, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+            .simple(1, ItemStack(Items.IRON_INGOT), ItemStack(Items.DIAMOND, 2))
+            .build()
+        val persistentData = CompoundTag()
+
+        repeat(2) {
+            assertEquals(Items.EMERALD, trade.resolve(RewardShopTradeHistory.completed(persistentData, trade.id))!!.firstCost.item)
+            RewardShopTradeHistory.increment(persistentData, trade.id)
+        }
+        assertEquals(Items.IRON_INGOT, trade.resolve(RewardShopTradeHistory.completed(persistentData, trade.id))!!.firstCost.item)
+        RewardShopTradeHistory.increment(persistentData, trade.id)
+
+        assertEquals(3, RewardShopTradeHistory.completed(persistentData, trade.id))
+        assertNull(trade.resolve(RewardShopTradeHistory.completed(persistentData, trade.id)))
     }
 
     @Test
