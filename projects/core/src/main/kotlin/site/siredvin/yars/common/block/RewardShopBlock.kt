@@ -4,13 +4,14 @@ import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.SimpleMenuProvider
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.BlockHitResult
-import site.siredvin.yars.common.rewardshop.RewardShopMerchant
+import site.siredvin.yars.common.rewardshop.RewardShopMenu
 
 class RewardShopBlock : Block(BlockBehaviour.Properties.of().strength(2.5f)) {
     @Deprecated("Vanilla's Block#use is deprecated in 1.20.1")
@@ -22,7 +23,7 @@ class RewardShopBlock : Block(BlockBehaviour.Properties.of().strength(2.5f)) {
         hand: InteractionHand,
         hit: BlockHitResult,
     ): InteractionResult {
-        if (!level.isClientSide) RewardShopMerchant(player).openTradingScreen(player, Component.translatable("block.yars.reward_shop"), 1)
+        if (!level.isClientSide) player.openMenu(SimpleMenuProvider({ id, inventory, _ -> RewardShopMenu(id, inventory) }, Component.translatable("block.yars.reward_shop")))
         return InteractionResult.sidedSuccess(level.isClientSide)
     }
 }
