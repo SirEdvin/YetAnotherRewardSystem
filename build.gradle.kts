@@ -1,0 +1,27 @@
+plugins {
+    java
+    id("site.siredvin.root") version "0.9.0"
+    id("site.siredvin.release") version "0.9.0"
+}
+
+subprojectShaking {
+    withKotlin.set(true)
+    javaVersion.set(JavaVersion.VERSION_21)
+}
+
+val setupSubproject = subprojectShaking::setupSubproject
+
+subprojects {
+    setupSubproject(this)
+}
+
+githubShaking {
+    modBranch.set("1.21")
+    projectRepo.set("TemplateProject")
+    useForgeJarJar.set(true)
+    shake()
+}
+
+repositories {
+    mavenCentral()
+}
