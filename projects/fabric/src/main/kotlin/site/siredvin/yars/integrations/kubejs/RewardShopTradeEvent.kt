@@ -22,7 +22,12 @@ class RewardShopTradeEvent : EventJS() {
 }
 
 object RewardShopKubeJSEvents {
-    private val trades: EventHandler = EventGroup.of("RewardShopEvents").server("trades") { RewardShopTradeEvent::class.java }
+    private val group = EventGroup.of("RewardShopEvents")
+    private val trades: EventHandler = group.server("trades") { RewardShopTradeEvent::class.java }
+
+    fun register() {
+        group.register()
+    }
 
     fun postTrades() {
         trades.post(ScriptType.SERVER, RewardShopTradeEvent())

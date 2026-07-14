@@ -1,6 +1,6 @@
 # Reward Shop KubeJS
 
-Register trades in a server script. Trade IDs are persistent player-history keys.
+Register trades in `kubejs/server_scripts`, then run `/reload` or restart the server. This event is unavailable to `startup_scripts`; trade IDs are persistent player-history keys.
 
 ```js
 RewardShopEvents.trades(event => {

@@ -4,7 +4,7 @@ import dev.latvian.mods.kubejs.KubeJSPlugin
 
 class YarsKubeJSPlugin : KubeJSPlugin() {
     override fun registerEvents() {
-        RewardShopKubeJSEvents
+        RewardShopKubeJSEvents.register()
     }
 
     override fun onServerReload() {
