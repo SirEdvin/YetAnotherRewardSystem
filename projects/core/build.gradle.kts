@@ -15,6 +15,8 @@ baseShaking {
 }
 
 vanillaShaking {
+    accessWideners.add("src/main/resources/yars-common.accesswidener")
+    accessWideners.add("src/main/resources/yars.accesswidener")
     shake()
 }
 

@@ -16,7 +16,7 @@ baseShaking {
 forgeShaking {
     commonProjectName.set("core")
     useMixins.set(true)
-    useAT.set(false)
+    useAT.set(true)
     useJarJar.set(false)
     extraVersionMappings.set(
         mapOf(
@@ -48,6 +48,8 @@ dependencies {
     implementation(libs.bundles.forge.raw)
     libs.bundles.forge.base.get().map { implementation(fg.deobf(it)) }
     implementation(fg.deobf(libs.kubejs.forge))
+    implementation(fg.deobf(libs.architectury.forge))
+    implementation(fg.deobf(libs.rhino.forge))
 
     libs.bundles.externalMods.forge.runtime.get().map { runtimeOnly(fg.deobf(it)) }
 }

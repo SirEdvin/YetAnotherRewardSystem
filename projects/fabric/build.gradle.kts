@@ -20,6 +20,7 @@ baseShaking {
 fabricShaking {
     commonProjectName.set("core")
     createRefmap.set(true)
+    accessWidener.set(project(":core").file("src/main/resources/yars.accesswidener"))
     extraVersionMappings.set(
         mapOf(
             "forgeconfigapiport" to "forgeconfigapirt",

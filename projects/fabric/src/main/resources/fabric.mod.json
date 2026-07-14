@@ -7,6 +7,7 @@
   "authors": [
     "SirEdvin"
   ],
+  "accessWidener": "yars.accesswidener",
   "contact": {
     "homepage": "https://github.com/SirEdvin/YetAnotherRewardSystem/",
     "issues": "https://github.com/SirEdvin/YetAnotherRewardSystem/issues",
@@ -20,6 +21,18 @@
       {
         "adapter": "kotlin",
         "value": "site.siredvin.yars.YarsFabric"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "site.siredvin.yars.YarsFabricClient"
+      }
+    ],
+    "fabric-datagen": [
+      {
+        "adapter": "kotlin",
+        "value": "site.siredvin.yars.data.FabricDataGenerators"
       }
     ]
   },

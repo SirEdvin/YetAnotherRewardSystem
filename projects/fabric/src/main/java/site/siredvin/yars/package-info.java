@@ -1,1 +1,0 @@
-package site.siredvin.yars;

@@ -1,0 +1,5 @@
+{
+  "item.yars.yars_item": "YARS Item",
+  "item.yars.yars_item.tooltip": "A configurable reward-system item",
+  "text.yars.creative_tab": "Yet Another Reward System"
+}
