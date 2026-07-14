@@ -78,8 +78,10 @@ class RewardShopTradeBuilder internal constructor(
 ) {
     private val stages = mutableListOf<RewardShopTradeStage>()
 
+    @JvmOverloads
     fun simple(purchases: Number, result: ItemStack, firstCost: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = stage(purchases.toInt().toStageLimit(), { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
 
+    @JvmOverloads
     fun dynamic(
         purchases: Number,
         result: RewardShopStackResolver,
