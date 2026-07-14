@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "id": "template",
+  "id": "yars",
   "version": "${version}",
-  "name": "Template",
-  "description": "Mod Description",
+  "name": "Yet Another Reward System",
+  "description": "A KubeJS extension point for reward systems.",
   "authors": [
     "SirEdvin"
   ],
-  "accessWidener": "template.accesswidener",
+  "accessWidener": "yars.accesswidener",
   "contact": {
-    "homepage": "https://example.com/",
-    "issues": "https://example.com/",
-    "sources": "https://example.com/"
+    "homepage": "https://github.com/SirEdvin/YetAnotherRewardSystem/",
+    "issues": "https://github.com/SirEdvin/YetAnotherRewardSystem/issues",
+    "sources": "https://github.com/SirEdvin/YetAnotherRewardSystem/"
   },
   "license": "MIT",
   "icon": "pack.png",
@@ -20,19 +20,19 @@
     "main": [
       {
         "adapter": "kotlin",
-        "value": "site.siredvin.template.FabricMod"
+        "value": "site.siredvin.yars.YarsFabric"
       }
     ],
     "client": [
       {
         "adapter": "kotlin",
-        "value": "site.siredvin.template.FabricModClient"
+        "value": "site.siredvin.yars.YarsFabricClient"
       }
     ],
     "fabric-datagen": [
       {
         "adapter": "kotlin",
-        "value": "site.siredvin.template.data.FabricDataGenerators"
+        "value": "site.siredvin.yars.data.FabricDataGenerators"
       }
     ]
   },
@@ -43,7 +43,8 @@
     "fabric": "*",
     "minecraft": ">=1.20 <1.21",
     "java": ">=17",
-    "broccolium": ">=${broccoliumVersion}"
+    "broccolium": ">=${broccoliumVersion}",
+    "kubejs": ">=2001.6.5-build.20"
   },
   "custom": {
     "modmenu": {

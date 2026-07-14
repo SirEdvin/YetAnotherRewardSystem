@@ -1,32 +1,39 @@
 modLoader="kotlinforforge"
 loaderVersion="[4,)"
 
-issueTrackerURL="https://github.com/SirEdvin/TemplateProject/issues"
+issueTrackerURL="https://github.com/SirEdvin/YetAnotherRewardSystem/issues"
 logoFile="pack.png"
 
 license="MIT"
 
 [[mods]]
-modId="template"
+modId="yars"
 version="${file.jarVersion}"
-displayName="Template"
-displayURL="https://github.com/SirEdvin/TemplateProject/"
+displayName="Yet Another Reward System"
+displayURL="https://github.com/SirEdvin/YetAnotherRewardSystem/"
 
 credits=""
 authors=""
 description='''
 '''
 
-[[dependencies.template]]
+[[dependencies.yars]]
 modId="forge"
 mandatory=true
 versionRange="[${forgeVersion},48)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.template]]
+[[dependencies.yars]]
 modId="broccolium"
 mandatory=true
 versionRange="[${broccoliumVersion},)"
 ordering="NONE"
+side="BOTH"
+
+[[dependencies.yars]]
+modId="kubejs"
+mandatory=true
+versionRange="[2001.6.5-build.20,)"
+ordering="AFTER"
 side="BOTH"

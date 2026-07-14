@@ -1,0 +1,1 @@
+site.siredvin.yars.integrations.kubejs.YarsKubeJSPlugin
