@@ -17,7 +17,7 @@ subprojects {
 
 githubShaking {
     modBranch.set("1.20")
-    projectRepo.set("TemplateProject")
+    projectRepo.set("YetAnotherRewardSystem")
     shake()
 }
 

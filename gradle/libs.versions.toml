@@ -35,6 +35,7 @@ forge-kotlin = "4.11.0"
 parchment = "2023.09.03"
 parchmentMc = "1.20.1"
 # Extra mod dependencies
+kubejs = "2001.6.5-build.20"
 
 # Dev mod dependenceis
 jei = "15.1.0.19"
@@ -81,6 +82,8 @@ peripheralium-fabric = {module = "site.siredvin:peripheralium-fabric-1.20.1", ve
 # Forge mod dependencies
 cc-tweaked-forge =  {module = "cc.tweaked:cc-tweaked-1.20.1-forge", version.ref="cc-tweaked"}
 forge-kotlin = {module = "thedarkcolour:kotlinforforge", version.ref = "forge-kotlin"}
+kubejs-fabric = {module = "dev.latvian.mods:kubejs-fabric", version.ref = "kubejs"}
+kubejs-forge = {module = "dev.latvian.mods:kubejs-forge", version.ref = "kubejs"}
 broccolium-forge = {module = "site.siredvin:broccolium-forge-1.20.1", version.ref = "broccolium"}
 tweakium-forge = {module = "site.siredvin:tweakium-forge-1.20.1", version.ref = "tweakium"}
 peripheralium-forge = {module = "site.siredvin:peripheralium-forge-1.20.1", version.ref = "peripheralium"}

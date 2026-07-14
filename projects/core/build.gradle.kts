@@ -15,14 +15,11 @@ baseShaking {
 }
 
 vanillaShaking {
-    accessWideners.add("src/main/resources/template-common.accesswidener")
-    accessWideners.add("src/main/resources/template.accesswidener")
     shake()
 }
 
 dependencies {
     implementation(libs.bundles.kotlin)
-//    implementation(libs.bundles.cccommon)
     implementation(libs.bundles.common)
     api(libs.bundles.apicommon)
 }

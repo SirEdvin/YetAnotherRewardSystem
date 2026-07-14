@@ -20,17 +20,22 @@ baseShaking {
 fabricShaking {
     commonProjectName.set("core")
     createRefmap.set(true)
-    accessWidener.set(project(":core").file("src/main/resources/template.accesswidener"))
     extraVersionMappings.set(
         mapOf(
             "forgeconfigapiport" to "forgeconfigapirt",
             "broccolium" to "broccolium",
+            "kubejs" to "kubejs",
         ),
     )
     shake()
 }
 
 repositories {
+    maven {
+        name = "Latvian Mods"
+        url = uri("https://maven.latvian.dev/releases")
+        content { includeGroup("dev.latvian.mods") }
+    }
     // location of the maven that hosts JEI files since January 2023
     maven {
         name = "Jared's maven"
@@ -56,6 +61,7 @@ dependencies {
         isTransitive = false
     }
     modImplementation(libs.fabric.config)
+    modImplementation(libs.kubejs.fabric)
 
     modRuntimeOnly(libs.bundles.externalMods.fabric.runtime) {
         isTransitive = false

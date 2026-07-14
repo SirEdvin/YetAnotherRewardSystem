@@ -30,7 +30,7 @@ pluginManagement {
 }
 
 val minecraftVersion: String by settings
-rootProject.name = "TemplateProject $minecraftVersion"
+rootProject.name = "YetAnotherRewardSystem $minecraftVersion"
 
 include(":core")
 include(":forge")
