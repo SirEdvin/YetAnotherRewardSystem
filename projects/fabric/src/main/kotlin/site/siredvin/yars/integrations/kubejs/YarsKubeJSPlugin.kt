@@ -2,4 +2,12 @@ package site.siredvin.yars.integrations.kubejs
 
 import dev.latvian.mods.kubejs.KubeJSPlugin
 
-class YarsKubeJSPlugin : KubeJSPlugin()
+class YarsKubeJSPlugin : KubeJSPlugin() {
+    override fun registerEvents() {
+        RewardShopKubeJSEvents
+    }
+
+    override fun onServerReload() {
+        RewardShopKubeJSEvents.postTrades()
+    }
+}
