@@ -78,16 +78,19 @@ class RewardShopTradeBuilder internal constructor(
 ) {
     private val stages = mutableListOf<RewardShopTradeStage>()
 
-    fun stage(purchases: Int, result: ItemStack, firstCost: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = stage(purchases, { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
+    fun simple(purchases: Number, result: ItemStack, firstCost: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = stage(purchases.toInt().toStageLimit(), { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
 
-    fun unlimited(result: ItemStack, firstCost: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = stage(null, { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
-
-    fun calculated(
-        purchases: Int?,
+    fun dynamic(
+        purchases: Number,
         result: RewardShopStackResolver,
         firstCost: RewardShopStackResolver,
         secondCost: RewardShopStackResolver? = null,
-    ): RewardShopTradeBuilder = stage(purchases, result, firstCost, secondCost)
+    ): RewardShopTradeBuilder = stage(
+        purchases.toInt().toStageLimit(),
+        { index -> result.resolve(index + 1) },
+        { index -> firstCost.resolve(index + 1) },
+        secondCost?.let { resolver -> { index -> resolver.resolve(index + 1) } },
+    )
 
     fun build(): RewardShopTrade = RewardShopTrade(id, stages.toList())
 
@@ -101,14 +104,18 @@ class RewardShopTradeBuilder internal constructor(
         stages += RewardShopTradeStage(purchases, result, RewardShopCost(firstCost, secondCost))
         return this
     }
+
+    private fun Int.toStageLimit(): Int? = when {
+        this == -1 -> null
+        this > 0 -> this
+        else -> throw IllegalArgumentException("Trade stages must have a positive limit or -1 for unlimited")
+    }
 }
 
 class RewardShopTradeRegistration {
     private val builders = mutableListOf<RewardShopTradeBuilder>()
 
-    fun trade(id: String, result: ItemStack, firstCost: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = progression(id).unlimited(result, firstCost, secondCost)
-
-    fun progression(id: String): RewardShopTradeBuilder = RewardShopTradeBuilder(id).also { builders += it }
+    fun trade(id: String): RewardShopTradeBuilder = RewardShopTradeBuilder(id).also { builders += it }
 
     fun replaceTrades() {
         RewardShopTrades.replace(builders.map { it.build() })

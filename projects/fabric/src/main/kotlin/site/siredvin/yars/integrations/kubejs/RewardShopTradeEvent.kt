@@ -5,16 +5,13 @@ import dev.latvian.mods.kubejs.event.EventHandler
 import dev.latvian.mods.kubejs.event.EventJS
 import dev.latvian.mods.kubejs.event.EventResult
 import dev.latvian.mods.kubejs.script.ScriptType
-import net.minecraft.world.item.ItemStack
 import site.siredvin.yars.common.rewardshop.RewardShopTradeBuilder
 import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 
 class RewardShopTradeEvent : EventJS() {
     private val registration = RewardShopTradeRegistration()
 
-    fun trade(id: String, result: ItemStack, firstCost: ItemStack, secondCost: ItemStack? = null): RewardShopTradeBuilder = registration.trade(id, result, firstCost, secondCost)
-
-    fun progression(id: String): RewardShopTradeBuilder = registration.progression(id)
+    fun trade(id: String): RewardShopTradeBuilder = registration.trade(id)
 
     override fun afterPosted(result: EventResult) {
         registration.replaceTrades()
