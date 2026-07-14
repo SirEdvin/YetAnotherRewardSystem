@@ -14,7 +14,7 @@ class RewardShopTradeEvent : EventJS() {
     fun trade(id: String): RewardShopTradeBuilder = registration.trade(id)
 
     override fun afterPosted(result: EventResult) {
-        registration.replaceTrades()
+        if (!result.error()) registration.replaceTrades()
     }
 }
 
