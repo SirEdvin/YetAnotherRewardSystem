@@ -1,0 +1,93 @@
+name: Pull request checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verification:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run lints and unit tests
+        run: >-
+          timeout --foreground 20m ./gradlew
+          check
+          :core:testModClasses
+          :fabric:testModClasses
+          :forge:testModClasses
+          --stacktrace
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: projects/*/build/reports/tests/
+          if-no-files-found: ignore
+
+  game-tests:
+    name: ${{ matrix.name }} GameTests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Fabric
+            task: :fabric:runClientGameTest
+            report-directory: projects/fabric/build/test-results
+            run-directory: projects/fabric/run/client-gametest
+          - name: Forge
+            task: :forge:runClientGameTest
+            report-directory: projects/forge/build/test-results
+            run-directory: projects/forge/run/client-gametest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run ${{ matrix.name }} GameTests
+        run: >-
+          timeout --foreground 15m xvfb-run --auto-servernum
+          ./gradlew ${{ matrix.task }} --stacktrace
+
+      - name: Upload ${{ matrix.name }} GameTest reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-gametest-reports
+          path: |
+            ${{ matrix.report-directory }}/client-gametest.*
+            ${{ matrix.run-directory }}/logs/
+            ${{ matrix.run-directory }}/crash-reports/
+          if-no-files-found: warn
