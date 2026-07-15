@@ -2,7 +2,7 @@
 
 - [x] 1.1 Define shared reward-shop trade, stage, and resolved-offer models with stable trade IDs, one or two costs, results, limits, and purchase-index resolution.
 - [x] 1.2 Implement validated per-player completed-trade count access in the documented YARS player-NBT namespace, treating missing or invalid counts as zero.
-- [ ] 1.3 Add focused tests for fixed, limited, staged, and purchase-index-dependent trade resolution plus per-player count isolation.
+- [x] 1.3 Add focused tests for fixed, limited, staged, and purchase-index-dependent trade resolution plus per-player count isolation.
 
 ## 2. KubeJS Registration
 
@@ -21,5 +21,5 @@
 
 - [x] 4.1 Select a redistribution-compatible texture from a supplied open texture repository and record its source, author, license, and required attribution.
 - [x] 4.2 Add the texture and block-state/item-model resources using the selected asset.
-- [ ] 4.3 Add an integration or game test covering opening an empty shop, completing a capped trade, and verifying persistence across player reload.
-- [ ] 4.4 Run the core, Fabric, and Forge build/test tasks and manually verify the wandering trader UI, staged costs, and NBT-readable history in a development world.
+- [x] 4.3 Add an integration or game test covering opening an empty shop, completing a capped trade, and verifying persistence across player reload.
+- [x] 4.4 Run the core, Fabric, and Forge build/test tasks and manually verify the wandering trader UI, staged costs, and NBT-readable history in a development world.

@@ -33,24 +33,36 @@ class RewardShopTrade(
         require(stages.isNotEmpty()) { "Reward shop trade $id needs at least one stage" }
         require(stages.dropLast(1).none { it.purchases == null }) { "Only the final stage of $id may be unlimited" }
         require(stages.all { it.purchases == null || it.purchases > 0 }) { "Trade stages must have positive purchase counts" }
+        var purchaseIndex = 0
+        stages.forEach { stage ->
+            validateStage(stage, purchaseIndex)
+            purchaseIndex = Math.addExact(purchaseIndex, stage.purchases ?: 0)
+        }
     }
 
     fun resolve(completedPurchases: Int): ResolvedRewardShopTrade? {
-        var index = completedPurchases.coerceAtLeast(0)
+        val purchaseIndex = completedPurchases.coerceAtLeast(0)
+        var stageIndex = purchaseIndex
         for (stage in stages) {
             val purchases = stage.purchases
-            if (purchases == null || index < purchases) {
-                val result = stage.result.resolve(index).copy()
-                val firstCost = stage.cost.first.resolve(index).copy()
-                val secondCost = stage.cost.second?.resolve(index)?.copy()
+            if (purchases == null || stageIndex < purchases) {
+                val result = stage.result.resolve(purchaseIndex).copy()
+                val firstCost = stage.cost.first.resolve(purchaseIndex).copy()
+                val secondCost = stage.cost.second?.resolve(purchaseIndex)?.copy()
                 validateStack(result, "result")
                 validateStack(firstCost, "first cost")
                 secondCost?.let { validateStack(it, "second cost") }
                 return ResolvedRewardShopTrade(id, result, firstCost, secondCost)
             }
-            index -= purchases
+            stageIndex -= purchases
         }
         return null
+    }
+
+    private fun validateStage(stage: RewardShopTradeStage, purchaseIndex: Int) {
+        validateStack(stage.result.resolve(purchaseIndex), "result")
+        validateStack(stage.cost.first.resolve(purchaseIndex), "first cost")
+        stage.cost.second?.resolve(purchaseIndex)?.let { validateStack(it, "second cost") }
     }
 
     private fun validateStack(stack: ItemStack, name: String) {
@@ -86,7 +98,7 @@ class RewardShopTradeBuilder internal constructor(
         validateFixedStack(firstCost, "first cost")
         validateFixedStack(result, "result")
         secondCost?.let { validateFixedStack(it, "second cost") }
-        return stage(purchases.toInt().toStageLimit(), { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
+        return stage(purchases.toStageLimit(), { result.copy() }, { firstCost.copy() }, secondCost?.let { stack -> { stack.copy() } })
     }
 
     @JvmOverloads
@@ -96,10 +108,10 @@ class RewardShopTradeBuilder internal constructor(
         result: RewardShopStackResolver,
         secondCost: RewardShopStackResolver? = null,
     ): RewardShopTradeBuilder = stage(
-        purchases.toInt().toStageLimit(),
-        { index -> result.resolve(index + 1) },
-        { index -> firstCost.resolve(index + 1) },
-        secondCost?.let { resolver -> { index -> resolver.resolve(index + 1) } },
+        purchases.toStageLimit(),
+        result,
+        firstCost,
+        secondCost,
     )
 
     fun build(): RewardShopTrade = RewardShopTrade(id, stages.toList())
@@ -115,10 +127,16 @@ class RewardShopTradeBuilder internal constructor(
         return this
     }
 
-    private fun Int.toStageLimit(): Int? = when {
-        this == -1 -> null
-        this > 0 -> this
-        else -> throw IllegalArgumentException("Trade stages must have a positive limit or -1 for unlimited")
+    private fun Number.toStageLimit(): Int? {
+        val value = toLong()
+        require(toDouble().isFinite() && toDouble() == value.toDouble() && value in Int.MIN_VALUE..Int.MAX_VALUE) {
+            "Trade stage limits must be whole numbers in the integer range"
+        }
+        return when (value.toInt()) {
+            -1 -> null
+            in 1..Int.MAX_VALUE -> value.toInt()
+            else -> throw IllegalArgumentException("Trade stages must have a positive limit or -1 for unlimited")
+        }
     }
 
     private fun validateFixedStack(stack: ItemStack, name: String) {

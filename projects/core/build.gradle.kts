@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.bundles.kotlin)
     implementation(libs.bundles.common)
     api(libs.bundles.apicommon)
+    compileOnly(libs.mixin)
     testImplementation(libs.junit.jupiter)
     add(testMod.implementationConfigurationName, libs.testiarium.core)
     add(testMod.compileOnlyConfigurationName, libs.mixin)

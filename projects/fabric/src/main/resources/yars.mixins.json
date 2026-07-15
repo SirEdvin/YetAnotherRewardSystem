@@ -9,7 +9,5 @@
   "mixins": [
     "MerchantMenuMixin",
     "MerchantResultSlotMixin"
-  ],
-  "client": [
   ]
 }

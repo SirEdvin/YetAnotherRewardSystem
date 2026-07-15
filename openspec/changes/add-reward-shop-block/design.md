@@ -41,11 +41,13 @@ Alternative: provide only multipliers and increments. That cannot express the re
 
 An exhausted trade will not be offered to that player. On a successful transaction, the server increments that player's count for the trade ID and refreshes the player-specific offers. The transaction path must re-check the current count before recording it to prevent stale client offers from bypassing limits.
 
+Vanilla calls `Merchant.notifyTrade` only after removing the result, so the shared implementation uses a narrow common mixin at the merchant result-slot removal and quick-move entry points. The guard approves only the exact currently resolved reward-shop offer before vanilla can transfer its result or consume payment. The post-trade callback consumes that approval, records the purchase, and refreshes offers. This requires no loader-specific bridge or access change.
+
 Alternative: use vanilla offer max-uses as global state. Merchant offers are shared by the opened merchant and cannot represent different player histories.
 
 ### Persist under a versioned YARS player-NBT root
 
-Counts will live under a YARS-owned persistent-data compound such as `yars.reward_shop.trades.<trade-id>`, with numeric values representing completed transactions. The exact root and key format will be documented as the script/UI contract and all reads will tolerate absent data as zero.
+Counts will live under the YARS-owned persistent-data compound `yars.reward_shop.v1.trades.<trade-id>`, with integer values representing completed transactions. This path is the script/UI contract; absent, non-integer, and negative values resolve as zero.
 
 Alternative: a capability/component abstraction. This needs loader-specific plumbing for a small integer map and is not required when the stated integration requirement is player NBT access.
 
@@ -69,5 +71,4 @@ This is a new block with no existing saved data or configured trade API. Existin
 
 ## Open Questions
 
-- Which compatible texture and license notice will be selected from the supplied repositories?
-- Should KubeJS callbacks be evaluated only during server-side offer refreshes, or should the first version provide staged item-stack definitions only?
+None. The selected texture provenance is recorded in `THIRD_PARTY_NOTICES.md`. Dynamic callbacks receive the player's zero-based total purchase index; their first output is validated during registration and their current output is validated during server-side offer resolution.

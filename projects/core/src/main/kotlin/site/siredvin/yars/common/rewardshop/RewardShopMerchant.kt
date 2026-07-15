@@ -10,6 +10,7 @@ import net.minecraft.world.item.trading.MerchantOffer
 import net.minecraft.world.item.trading.MerchantOffers
 import site.siredvin.yars.YarsCore
 import site.siredvin.yars.common.setup.Blocks
+import java.util.Collections
 import java.util.IdentityHashMap
 
 class RewardShopMerchant(
@@ -18,6 +19,7 @@ class RewardShopMerchant(
 ) : Merchant {
     private var tradingPlayer: Player? = player
     private val trades = IdentityHashMap<MerchantOffer, String>()
+    private val approvedOffers = Collections.newSetFromMap(IdentityHashMap<MerchantOffer, Boolean>())
     private var offers = MerchantOffers()
 
     init {
@@ -39,14 +41,22 @@ class RewardShopMerchant(
     }
 
     override fun notifyTrade(offer: MerchantOffer) {
+        if (!approvedOffers.remove(offer)) return
         val tradeId = trades[offer] ?: return
-        val trade = RewardShopTrades.find(tradeId) ?: return
-        val resolved = runCatching { trade.resolve(RewardShopTradeHistory.completed(player, tradeId)) }.getOrNull() ?: return
-        if (!ItemStack.matches(offer.result, resolved.result) || !ItemStack.matches(offer.costA, resolved.firstCost)) return
-        if (!ItemStack.matches(offer.costB, resolved.secondCost ?: ItemStack.EMPTY)) return
         RewardShopTradeHistory.increment(player, tradeId)
         rebuildOffers()
         player.sendMerchantOffers(player.containerMenu.containerId, offers, 1, 0, false, false)
+    }
+
+    fun approveTrade(offer: MerchantOffer?): Boolean {
+        val tradeId = offer?.let(trades::get) ?: return false
+        val trade = RewardShopTrades.find(tradeId) ?: return false
+        val resolved = runCatching { trade.resolve(RewardShopTradeHistory.completed(player, tradeId)) }.getOrNull() ?: return false
+        val matches = ItemStack.matches(offer.result, resolved.result) &&
+            ItemStack.matches(offer.costA, resolved.firstCost) &&
+            ItemStack.matches(offer.costB, resolved.secondCost ?: ItemStack.EMPTY)
+        if (matches) approvedOffers += offer
+        return matches
     }
 
     override fun notifyTradeUpdated(stack: ItemStack) = Unit
@@ -63,11 +73,12 @@ class RewardShopMerchant(
 
     private fun rebuildOffers() {
         trades.clear()
+        approvedOffers.clear()
         offers = MerchantOffers()
         RewardShopTrades.all().forEach { trade ->
             val resolved = try {
                 trade.resolve(RewardShopTradeHistory.completed(player, trade.id))
-            } catch (exception: IllegalArgumentException) {
+            } catch (exception: RuntimeException) {
                 YarsCore.LOGGER.error("Skipping invalid reward shop trade ${trade.id}", exception)
                 null
             } ?: return@forEach
