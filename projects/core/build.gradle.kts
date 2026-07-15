@@ -20,11 +20,20 @@ vanillaShaking {
     shake()
 }
 
+val testMod = sourceSets.create("testMod") {
+    compileClasspath += sourceSets.main.get().compileClasspath
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    runtimeClasspath += sourceSets.main.get().output
+}
+
 dependencies {
     implementation(libs.bundles.kotlin)
     implementation(libs.bundles.common)
     api(libs.bundles.apicommon)
     testImplementation(libs.junit.jupiter)
+    add(testMod.implementationConfigurationName, libs.testiarium.core)
+    add(testMod.compileOnlyConfigurationName, libs.mixin)
 }
 
 tasks.test {

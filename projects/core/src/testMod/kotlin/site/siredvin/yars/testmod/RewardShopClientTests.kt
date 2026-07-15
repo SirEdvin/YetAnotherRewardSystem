@@ -1,5 +1,6 @@
 package site.siredvin.yars.testmod
 
+import net.minecraft.core.BlockPos
 import net.minecraft.gametest.framework.GameTestAssertException
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.network.chat.Component
@@ -23,7 +24,7 @@ object RewardShopClientTests {
     @TestGroup(TestTags.CLIENT)
     fun tradeScreen(helper: GameTestHelper) = helper.sequence {
         thenExecute {
-            val shopPos = helper.absolutePos(net.minecraft.core.BlockPos(1, 1, 1))
+            val shopPos = helper.absolutePos(BlockPos(1, 1, 1))
             helper.level.setBlockAndUpdate(shopPos, Blocks.REWARD_SHOP.get().defaultBlockState())
             RewardShopTradeRegistration().apply {
                 trade("emeralds").simple(-1, ItemStack(Items.DIAMOND, 3), ItemStack(Items.EMERALD, 12))

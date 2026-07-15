@@ -33,13 +33,16 @@ forgeShaking {
 }
 
 val testMod = sourceSets.create("testMod") {
+    resources.srcDir(project(":core").file("src/testMod/resources"))
     resources.srcDir(layout.buildDirectory.dir("generated/testiarium-core"))
     compileClasspath += sourceSets.main.get().compileClasspath
     compileClasspath += sourceSets.main.get().output
     compileClasspath += project(":core").sourceSets.main.get().output
+    compileClasspath += project(":core").sourceSets["testMod"].output
     runtimeClasspath += sourceSets.main.get().runtimeClasspath
     runtimeClasspath += sourceSets.main.get().output
     runtimeClasspath += project(":core").sourceSets.main.get().output
+    runtimeClasspath += project(":core").sourceSets["testMod"].output
     compileClasspath += testiariumCore
     runtimeClasspath += testiariumCore
 }
@@ -98,6 +101,7 @@ minecraft {
                 }
                 create("yars_testmod") {
                     source(testMod)
+                    source(project(":core").sourceSets["testMod"])
                 }
             }
         }

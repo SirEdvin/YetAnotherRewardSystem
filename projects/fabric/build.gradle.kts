@@ -10,6 +10,9 @@ plugins {
 val modVersion: String by extra
 val minecraftVersion: String by extra
 val modBaseName: String by extra
+val testiariumFabric = (dependencies.create("site.siredvin:testiarium-fabric-1.20.1:${libs.versions.testiarium.get()}") as ExternalModuleDependency).apply {
+    isTransitive = false
+}
 
 baseShaking {
     projectPart.set("fabric")
@@ -30,6 +33,20 @@ fabricShaking {
     )
     shake()
 }
+
+val testMod = sourceSets.create("testMod") {
+    resources.srcDir(project(":core").file("src/testMod/resources"))
+    compileClasspath += sourceSets.main.get().compileClasspath
+    compileClasspath += sourceSets.main.get().output
+    compileClasspath += project(":core").sourceSets.main.get().output
+    compileClasspath += project(":core").sourceSets["testMod"].output
+    runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    runtimeClasspath += sourceSets.main.get().output
+    runtimeClasspath += project(":core").sourceSets.main.get().output
+    runtimeClasspath += project(":core").sourceSets["testMod"].output
+}
+
+net.fabricmc.loom.configuration.RemapConfigurations.setupForSourceSet(project, testMod)
 
 repositories {
     maven {
@@ -66,6 +83,29 @@ dependencies {
 
     modRuntimeOnly(libs.bundles.externalMods.fabric.runtime) {
         isTransitive = false
+    }
+    add("modTestModImplementation", testiariumFabric)
+}
+
+loom {
+    mods {
+        register("yars_testmod") {
+            sourceSet(testMod)
+            sourceSet(project(":core").sourceSets["testMod"])
+        }
+    }
+    runs {
+        create("clientGameTest") {
+            client()
+            source(testMod)
+            property("testiarium.client", "true")
+            property("testiarium.tags", "client")
+            property("testiarium.structures", layout.buildDirectory.dir("resources/testMod/gameteststructures").get().asFile.absolutePath)
+            property("testiarium.gametest-report", layout.buildDirectory.file("test-results/client-gametest.xml").get().asFile.absolutePath)
+            property("testiarium.screenshots", layout.buildDirectory.get().asFile.absolutePath)
+            vmArg("-ea")
+            runDir("run/client-gametest")
+        }
     }
 }
 
