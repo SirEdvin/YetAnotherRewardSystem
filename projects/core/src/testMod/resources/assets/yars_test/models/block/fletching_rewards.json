@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/cube_all",
   "textures": {
-    "all": "yars:block/reward_shop"
+    "all": "minecraft:block/fletching_table_top"
   }
 }

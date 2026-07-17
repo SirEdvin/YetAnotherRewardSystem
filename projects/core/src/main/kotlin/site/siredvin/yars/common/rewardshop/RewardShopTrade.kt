@@ -1,6 +1,10 @@
 package site.siredvin.yars.common.rewardshop
 
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
+import site.siredvin.yars.common.block.RewardShopBlock
+import java.util.function.Consumer
 
 fun interface RewardShopStackResolver {
     fun resolve(purchaseIndex: Int): ItemStack
@@ -73,19 +77,17 @@ class RewardShopTrade(
 }
 
 object RewardShopTrades {
-    private var trades: Map<String, RewardShopTrade> = emptyMap()
+    @Volatile
+    private var trades: Map<ResourceLocation, Map<String, RewardShopTrade>> = emptyMap()
 
     @Synchronized
-    fun replace(newTrades: Collection<RewardShopTrade>) {
-        val duplicate = newTrades.groupingBy { it.id }.eachCount().entries.firstOrNull { it.value > 1 }?.key
-        require(duplicate == null) { "Duplicate reward shop trade ID: $duplicate" }
-        val byId = newTrades.associateBy { it.id }
-        trades = byId
+    fun replace(newTrades: Map<ResourceLocation, List<RewardShopTrade>>) {
+        trades = newTrades.mapValues { (_, shopTrades) -> shopTrades.associateBy { it.id } }
     }
 
-    fun all(): Collection<RewardShopTrade> = trades.values
+    fun all(shopId: ResourceLocation): Collection<RewardShopTrade> = trades[shopId]?.values ?: emptyList()
 
-    fun find(id: String): RewardShopTrade? = trades[id]
+    fun find(shopId: ResourceLocation, id: String): RewardShopTrade? = trades[shopId]?.get(id)
 }
 
 class RewardShopTradeBuilder internal constructor(
@@ -145,11 +147,37 @@ class RewardShopTradeBuilder internal constructor(
 }
 
 class RewardShopTradeRegistration {
-    private val builders = mutableListOf<RewardShopTradeBuilder>()
+    private val shops = mutableListOf<Pair<ResourceLocation, MutableList<RewardShopTradeBuilder>>>()
 
-    fun trade(id: String): RewardShopTradeBuilder = RewardShopTradeBuilder(id).also { builders += it }
-
-    fun replaceTrades() {
-        RewardShopTrades.replace(builders.map { it.build() })
+    fun shop(id: String, callback: Consumer<RewardShopTradeShopRegistration>) {
+        val shopId = ResourceLocation.tryParse(id) ?: throw IllegalArgumentException("Invalid reward shop ID: $id")
+        val builders = mutableListOf<RewardShopTradeBuilder>()
+        shops += shopId to builders
+        callback.accept(RewardShopTradeShopRegistration(builders))
     }
+
+    @Suppress("DEPRECATION")
+    fun replaceTrades(
+        isRewardShop: (ResourceLocation) -> Boolean = {
+            BuiltInRegistries.BLOCK.containsKey(it) && BuiltInRegistries.BLOCK.get(it) is RewardShopBlock
+        },
+    ) {
+        val built = linkedMapOf<ResourceLocation, MutableList<RewardShopTrade>>()
+        shops.forEach { (shopId, builders) ->
+            require(isRewardShop(shopId)) { "Reward shop target is missing or is not a reward shop block: $shopId" }
+            val trades = built.getOrPut(shopId) { mutableListOf() }
+            builders.forEach { builder ->
+                val trade = builder.build()
+                require(trades.none { it.id == trade.id }) { "Duplicate reward shop trade: $shopId / ${trade.id}" }
+                trades += trade
+            }
+        }
+        RewardShopTrades.replace(built)
+    }
+}
+
+class RewardShopTradeShopRegistration internal constructor(
+    private val builders: MutableList<RewardShopTradeBuilder>,
+) {
+    fun trade(id: String): RewardShopTradeBuilder = RewardShopTradeBuilder(id).also { builders += it }
 }
