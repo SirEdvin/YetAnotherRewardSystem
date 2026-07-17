@@ -2,6 +2,7 @@ package site.siredvin.yars.testmod
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.gametest.framework.GameTestAssertException
 import net.minecraft.gametest.framework.GameTestHelper
 import net.minecraft.nbt.CompoundTag
@@ -18,7 +19,6 @@ import site.siredvin.testiarium.api.TestGroup
 import site.siredvin.testiarium.api.TestTags
 import site.siredvin.testiarium.api.Timeouts
 import site.siredvin.testiarium.api.sequence
-import site.siredvin.yars.common.block.RewardShopBlock
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
@@ -27,7 +27,6 @@ import site.siredvin.yars.testmod.client.thenScreenshot
 
 object RewardShopClientTests {
     private val shopId = ResourceLocation("yars_test", "reward_shop")
-    private val shopBlock = RewardShopBlock(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().strength(2.5f), shopId)
 
     @JvmStatic
     @ClientGameTest(template = "empty", timeoutTicks = Timeouts.SECOND * 20)
@@ -37,7 +36,7 @@ object RewardShopClientTests {
         lateinit var savedPlayer: CompoundTag
         thenExecute {
             shopPos = helper.absolutePos(BlockPos(1, 1, 1))
-            helper.level.setBlockAndUpdate(shopPos, shopBlock.defaultBlockState())
+            helper.level.setBlockAndUpdate(shopPos, BuiltInRegistries.BLOCK.get(shopId).defaultBlockState())
             RewardShopTrades.replace(emptyMap())
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             persistentData(player).remove(RewardShopTradeHistory.ROOT_KEY)
