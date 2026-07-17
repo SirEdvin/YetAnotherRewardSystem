@@ -18,9 +18,11 @@ object YarsTestiarium {
     @JvmStatic
     @Suppress("DEPRECATION")
     fun registerHooks() {
-        blocks.register("reward_shop") {
-            val shopId = ResourceLocation("yars_test", "reward_shop")
-            RewardShopBlock(BlockBehaviour.Properties.of().strength(2.5f), shopId)
+        listOf("reward_shop", "fletching_rewards", "cartographer_rewards").forEach { path ->
+            blocks.register(path) {
+                val shopId = ResourceLocation("yars_test", path)
+                RewardShopBlock(BlockBehaviour.Properties.of().strength(2.5f), shopId)
+            }
         }
         blocks.register(KotlinModLoadingContext.get().getKEventBus())
         Testiarium.init()

@@ -31,6 +31,41 @@ object RewardShopClientTests {
     @JvmStatic
     @ClientGameTest(template = "empty", timeoutTicks = Timeouts.SECOND * 20)
     @TestGroup(TestTags.CLIENT)
+    fun rewardShopAppearance(helper: GameTestHelper) = helper.sequence {
+        val fletchingId = ResourceLocation("yars_test", "fletching_rewards")
+        val cartographerId = ResourceLocation("yars_test", "cartographer_rewards")
+        lateinit var fletchingPos: BlockPos
+        lateinit var cartographerPos: BlockPos
+        thenExecute {
+            fletchingPos = helper.absolutePos(BlockPos(1, 1, 1))
+            cartographerPos = helper.absolutePos(BlockPos(3, 1, 1))
+            helper.level.setBlockAndUpdate(fletchingPos, BuiltInRegistries.BLOCK.get(fletchingId).defaultBlockState())
+            helper.level.setBlockAndUpdate(cartographerPos, BuiltInRegistries.BLOCK.get(cartographerId).defaultBlockState())
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            player.connection.teleport(fletchingPos.x + 1.5, fletchingPos.y + 1.0, fletchingPos.z + 3.5, 180f, 15f)
+        }
+        thenIdle(2)
+        thenScreenshot("reward-shop-tables", showGui = false)
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            useShopBlock(player, fletchingPos)
+        }
+        thenIdle(2)
+        thenOnClient { check(player?.containerMenu?.type == MenuType.MERCHANT) { "Fletching reward shop did not open" } }
+        thenScreenshot("fletching-reward-shop-ui", showGui = true)
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            player.closeContainer()
+            useShopBlock(player, cartographerPos)
+        }
+        thenIdle(2)
+        thenOnClient { check(player?.containerMenu?.type == MenuType.MERCHANT) { "Cartographer reward shop did not open" } }
+        thenScreenshot("cartographer-reward-shop-ui", showGui = true)
+    }
+
+    @JvmStatic
+    @ClientGameTest(template = "empty", timeoutTicks = Timeouts.SECOND * 20)
+    @TestGroup(TestTags.CLIENT)
     fun rewardShopLifecycle(helper: GameTestHelper) = helper.sequence {
         lateinit var shopPos: BlockPos
         lateinit var savedPlayer: CompoundTag

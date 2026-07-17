@@ -10,8 +10,10 @@ import site.siredvin.yars.common.block.RewardShopBlock
 
 object YarsFabricTestMod : ModInitializer {
     override fun onInitialize() {
-        val shopId = ResourceLocation("yars_test", "reward_shop")
-        Registry.register(BuiltInRegistries.BLOCK, shopId, RewardShopBlock(BlockBehaviour.Properties.of().strength(2.5f), shopId))
+        listOf("reward_shop", "fletching_rewards", "cartographer_rewards").forEach { path ->
+            val shopId = ResourceLocation("yars_test", path)
+            Registry.register(BuiltInRegistries.BLOCK, shopId, RewardShopBlock(BlockBehaviour.Properties.of().strength(2.5f), shopId))
+        }
         YarsTests.register()
         FabricTestiarium.registerTests()
     }

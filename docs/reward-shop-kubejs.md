@@ -8,12 +8,12 @@ StartupEvents.registry('block', event => {
   event.create('daily_rewards', 'yars:reward_shop')
     .displayName('Daily Rewards')
     .hardness(2.5)
-    .textureAll('minecraft:block/diamond_block')
+    .textureAll('minecraft:block/fletching_table_top')
 
   event.create('veteran_rewards', 'yars:reward_shop')
     .displayName('Veteran Rewards')
     .hardness(3)
-    .textureAll('minecraft:block/gold_block')
+    .textureAll('minecraft:block/cartography_table_top')
 })
 ```
 
