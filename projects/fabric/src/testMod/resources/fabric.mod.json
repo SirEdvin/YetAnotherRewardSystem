@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "yars_testmod",
+  "version": "1.0",
+  "name": "YARS Testmod",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "site.siredvin.yars.testmod.YarsFabricTestMod"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "site.siredvin.yars.testmod.YarsFabricClientTestHooks"
+      }
+    ]
+  },
+  "mixins": [
+    "yars-testmod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "*",
+    "yars": "*",
+    "testiarium": "*"
+  }
+}

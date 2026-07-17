@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "yars:block/reward_shop" }
+  }
+}

@@ -49,10 +49,14 @@ byteBuddy = "1.14.2"
 hamcrest = "2.2"
 jqwik = "1.7.2"
 junit = "5.9.2"
+testiarium = "0.1.0"
 
 
 [libraries]
 # Base libraries
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+testiarium-core = { module = "site.siredvin:testiarium-core-1.20.1", version.ref = "testiarium" }
+testiarium-forge = { module = "site.siredvin:testiarium-forge-1.20.1", version.ref = "testiarium" }
 kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-atomicfu = {module = "org.jetbrains.kotlinx:atomicfu-jvm", version.ref = "kotlin-atomicfu"}
@@ -74,6 +78,7 @@ peripheralium-core = {module = "site.siredvin:peripheralium-common-1.20.1", vers
 fabric-loader = {module = "net.fabricmc:fabric-loader", version.ref = "fabric-loader"}
 fabric-api = {module = "net.fabricmc.fabric-api:fabric-api", version.ref="fabric-api"}
 fabric-kotlin = {module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-kotlin"}
+modmenu = {module = "maven.modrinth:modmenu", version.ref = "modmenu"}
 fabric-config = {module = "fuzs.forgeconfigapiport:forgeconfigapiport-fabric", version.ref = "forgeconfigapirt"}
 cc-tweaked-fabric-api = {module = "cc.tweaked:cc-tweaked-1.20.1-fabric-api", version.ref = "cc-tweaked"}
 cc-tweaked-fabric = {module = "cc.tweaked:cc-tweaked-1.20.1-fabric", version.ref = "cc-tweaked"}
