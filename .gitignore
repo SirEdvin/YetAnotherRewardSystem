@@ -23,6 +23,7 @@ classes/
 bin/
 .classpath
 .project
+.factorypath
 
 # macos
 
@@ -31,6 +32,9 @@ bin/
 # fabric
 
 run/
+logs/
+eula.txt
+kubejs/
 
 .env
 UnlimitedPeripheralWorks-*

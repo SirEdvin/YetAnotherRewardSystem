@@ -1,5 +1,6 @@
 package site.siredvin.yars
 
+import dev.latvian.mods.kubejs.core.EntityKJS
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
@@ -11,6 +12,7 @@ import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import site.siredvin.broccolium.ForgeBroccolium
 import site.siredvin.yars.common.configuration.ConfigHolder
+import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.forge.ForgeModRecipeIngredients
 import site.siredvin.yars.forge.YarsForgePlatform
 import site.siredvin.yars.xplat.ModCommonHooks
@@ -30,6 +32,7 @@ object YarsForge {
         ForgeBroccolium.sayHi()
         LOADING_CONTEXT.registerConfig(ModConfig.Type.COMMON, ConfigHolder.commonSpec, "${YarsCore.MOD_ID}.toml")
         YarsCore.configure(YarsForgePlatform, ForgeModRecipeIngredients)
+        RewardShopTradeHistory.configure { (it as EntityKJS).`kjs$getPersistentData`() }
         val eventBus = MOD_CONTEXT.getKEventBus()
         eventBus.addListener(this::commonSetup)
         ModCommonHooks.onRegister()
@@ -39,5 +42,6 @@ object YarsForge {
     }
 
     @Suppress("UNUSED_PARAMETER")
-    fun commonSetup(event: FMLCommonSetupEvent) {}
+    fun commonSetup(event: FMLCommonSetupEvent) {
+    }
 }
