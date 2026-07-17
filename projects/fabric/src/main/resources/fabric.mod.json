@@ -28,12 +28,6 @@
         "adapter": "kotlin",
         "value": "site.siredvin.yars.YarsFabricClient"
       }
-    ],
-    "fabric-datagen": [
-      {
-        "adapter": "kotlin",
-        "value": "site.siredvin.yars.data.FabricDataGenerators"
-      }
     ]
   },
   "mixins": [

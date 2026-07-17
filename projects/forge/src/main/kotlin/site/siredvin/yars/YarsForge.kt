@@ -15,7 +15,6 @@ import site.siredvin.yars.common.configuration.ConfigHolder
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.forge.ForgeModRecipeIngredients
 import site.siredvin.yars.forge.YarsForgePlatform
-import site.siredvin.yars.xplat.ModCommonHooks
 import thedarkcolour.kotlinforforge.forge.LOADING_CONTEXT
 import thedarkcolour.kotlinforforge.forge.MOD_CONTEXT
 
@@ -35,7 +34,6 @@ object YarsForge {
         RewardShopTradeHistory.configure { (it as EntityKJS).`kjs$getPersistentData`() }
         val eventBus = MOD_CONTEXT.getKEventBus()
         eventBus.addListener(this::commonSetup)
-        ModCommonHooks.onRegister()
         blocksRegistry.register(eventBus)
         itemsRegistry.register(eventBus)
         creativeTabRegistry.register(eventBus)
