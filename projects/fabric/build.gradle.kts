@@ -63,10 +63,10 @@ repositories {
         }
     }
     maven {
-        name = "ModMenu maven"
-        url = uri("https://maven.terraformersmc.com/releases")
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
         content {
-            includeGroup("com.terraformersmc")
+            includeGroup("maven.modrinth")
         }
     }
 }
@@ -74,7 +74,9 @@ repositories {
 dependencies {
     implementation(libs.bundles.kotlin)
 
-    modImplementation(libs.bundles.fabric.core)
+    modImplementation(libs.bundles.fabric.core) {
+        exclude(group = "com.terraformersmc", module = "modmenu")
+    }
     modImplementation(libs.bundles.fabric.base) {
         isTransitive = false
     }
@@ -84,6 +86,7 @@ dependencies {
     modRuntimeOnly(libs.bundles.externalMods.fabric.runtime) {
         isTransitive = false
     }
+    modRuntimeOnly(libs.modmenu)
     add("modTestModImplementation", testiariumFabric)
 }
 

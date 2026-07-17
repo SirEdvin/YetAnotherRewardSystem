@@ -36,6 +36,7 @@ object RewardShopClientTests {
             helper.level.setBlockAndUpdate(shopPos, Blocks.REWARD_SHOP.get().defaultBlockState())
             RewardShopTrades.replace(emptyList())
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            persistentData(player).remove(RewardShopTradeHistory.ROOT_KEY)
             player.connection.teleport(shopPos.x + 0.5, shopPos.y + 1.0, shopPos.z + 2.5, 180f, 0f)
             useShopBlock(player, shopPos)
         }
@@ -100,6 +101,13 @@ object RewardShopClientTests {
     }
 }
 
+object YarsTests {
+    @JvmStatic
+    fun register() {
+        site.siredvin.testiarium.Testiarium.register(RewardShopClientTests::class.java)
+    }
+}
+
 private fun useShopBlock(player: net.minecraft.world.entity.player.Player, shopPos: BlockPos) {
     val state = player.level().getBlockState(shopPos)
     state.use(
@@ -111,7 +119,10 @@ private fun useShopBlock(player: net.minecraft.world.entity.player.Player, shopP
 }
 
 private fun completeTrade(menu: MerchantMenu, player: net.minecraft.world.entity.player.Player, payment: ItemStack) {
-    menu.getSlot(0).set(payment)
+    player.inventory.add(payment)
+    menu.setSelectionHint(0)
+    menu.tryMoveItems(0)
+    check(!menu.getSlot(2).item.isEmpty) { "Payment did not match an offer" }
     check(!menu.quickMoveStack(player, 2).isEmpty) { "Trade did not produce its result" }
 }
 

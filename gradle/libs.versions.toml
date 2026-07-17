@@ -78,6 +78,7 @@ peripheralium-core = {module = "site.siredvin:peripheralium-common-1.20.1", vers
 fabric-loader = {module = "net.fabricmc:fabric-loader", version.ref = "fabric-loader"}
 fabric-api = {module = "net.fabricmc.fabric-api:fabric-api", version.ref="fabric-api"}
 fabric-kotlin = {module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-kotlin"}
+modmenu = {module = "maven.modrinth:modmenu", version.ref = "modmenu"}
 fabric-config = {module = "fuzs.forgeconfigapiport:forgeconfigapiport-fabric", version.ref = "forgeconfigapirt"}
 cc-tweaked-fabric-api = {module = "cc.tweaked:cc-tweaked-1.20.1-fabric-api", version.ref = "cc-tweaked"}
 cc-tweaked-fabric = {module = "cc.tweaked:cc-tweaked-1.20.1-fabric", version.ref = "cc-tweaked"}
