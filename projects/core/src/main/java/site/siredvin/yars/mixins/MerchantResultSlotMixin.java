@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import site.siredvin.yars.common.rewardshop.RewardShopMerchant;
+import site.siredvin.yars.common.block.AutomaticRewardBoxMerchant;
 
 @Mixin(MerchantResultSlot.class)
 public abstract class MerchantResultSlotMixin {
@@ -19,7 +20,8 @@ public abstract class MerchantResultSlotMixin {
 
     @Inject(method = "remove", at = @At("HEAD"), cancellable = true)
     private void yars$validateRewardShopOffer(int amount, CallbackInfoReturnable<ItemStack> callback) {
-        if (merchant instanceof RewardShopMerchant rewardShop && !rewardShop.approveTrade(slots.getActiveOffer())) {
+        if (merchant instanceof AutomaticRewardBoxMerchant
+                || merchant instanceof RewardShopMerchant rewardShop && !rewardShop.approveTrade(slots.getActiveOffer())) {
             callback.setReturnValue(ItemStack.EMPTY);
         }
     }

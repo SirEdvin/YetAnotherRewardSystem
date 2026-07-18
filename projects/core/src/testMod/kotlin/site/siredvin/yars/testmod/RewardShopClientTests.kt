@@ -19,6 +19,7 @@ import site.siredvin.testiarium.api.TestGroup
 import site.siredvin.testiarium.api.TestTags
 import site.siredvin.testiarium.api.Timeouts
 import site.siredvin.testiarium.api.sequence
+import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
@@ -137,6 +138,60 @@ object RewardShopClientTests {
             check(player.inventory.countItem(Items.DIAMOND) == 0) { "Stale offer granted its result" }
             check(menu.getSlot(0).item.count == 1) { "Stale offer consumed its payment" }
             check(RewardShopTradeHistory.completed(player, shopId, "stale") == 1) { "Stale offer changed purchase history" }
+        }
+    }
+
+    @JvmStatic
+    @ClientGameTest(template = "empty", timeoutTicks = Timeouts.SECOND * 20)
+    @TestGroup(TestTags.CLIENT)
+    fun automaticRewardBoxSelectionAndExecution(helper: GameTestHelper) = helper.sequence {
+        val automaticId = ResourceLocation("yars_test", "automatic_reward_box")
+        lateinit var boxPos: BlockPos
+        thenExecute {
+            boxPos = helper.absolutePos(BlockPos(1, 1, 1))
+            helper.level.setBlockAndUpdate(boxPos, BuiltInRegistries.BLOCK.get(automaticId).defaultBlockState())
+            RewardShopTrades.replace(emptyMap())
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.0, boxPos.z + 2.5, 180f, 0f)
+            useShopBlock(player, boxPos)
+        }
+        thenIdle(2)
+        thenOnClient {
+            val menu = player?.containerMenu as? MerchantMenu ?: error("Automatic reward box menu did not open")
+            check(menu.offers.isEmpty()) { "Unconfigured automatic reward box exposed offers" }
+        }
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            player.closeContainer()
+            RewardShopTradeRegistration().apply {
+                shop(automaticId.toString()) {
+                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+                    it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
+                }
+                replaceTrades { true }
+            }
+            useShopBlock(player, boxPos)
+            val menu = player.containerMenu as MerchantMenu
+            menu.setSelectionHint(0)
+            menu.tryMoveItems(0)
+            val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
+            check(box.selectedTradeId == "selected") { "Offer selection was not stored" }
+            check(menu.getSlot(0).item.isEmpty && menu.getSlot(2).item.isEmpty) { "Selection interface moved payment or result items" }
+            box.setItem(0, ItemStack(Items.EMERALD))
+            check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
+            menu.setSelectionHint(1)
+            check(box.selectedTradeId == "replacement") { "Replacement selection was not stored" }
+        }
+        thenIdle(2)
+        thenScreenshot("automatic-reward-box-selection", showGui = true)
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            val menu = player.containerMenu as MerchantMenu
+            RewardShopTrades.replace(emptyMap())
+            menu.setSelectionHint(0)
+            val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
+            check(box.selectedTradeId == "replacement") { "Stale offer changed the selection" }
+            check(box.getItem(2).item === Items.DIAMOND) { "Reload removed stored output" }
         }
     }
 }

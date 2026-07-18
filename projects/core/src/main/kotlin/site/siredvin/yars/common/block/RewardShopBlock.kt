@@ -11,7 +11,9 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.BlockHitResult
 import site.siredvin.yars.common.rewardshop.RewardShopMerchant
 
-class RewardShopBlock(properties: Properties, val shopId: ResourceLocation) : Block(properties) {
+class RewardShopBlock(properties: Properties, override val shopId: ResourceLocation) :
+    Block(properties),
+    RewardShopTarget {
     @Deprecated("Vanilla's Block#use is deprecated in 1.20.1")
     override fun use(
         state: BlockState,

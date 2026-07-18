@@ -3,7 +3,7 @@ package site.siredvin.yars.common.rewardshop
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
-import site.siredvin.yars.common.block.RewardShopBlock
+import site.siredvin.yars.common.block.RewardShopTarget
 import java.util.function.Consumer
 
 fun interface RewardShopStackResolver {
@@ -77,13 +77,22 @@ class RewardShopTrade(
 }
 
 object RewardShopTrades {
+    fun interface Listener {
+        fun onRewardShopTradesReplaced()
+    }
+
     @Volatile
     private var trades: Map<ResourceLocation, Map<String, RewardShopTrade>> = emptyMap()
+    private val listeners = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Listener, Boolean>())
 
     @Synchronized
     fun replace(newTrades: Map<ResourceLocation, List<RewardShopTrade>>) {
         trades = newTrades.mapValues { (_, shopTrades) -> shopTrades.associateBy { it.id } }
+        synchronized(listeners) { listeners.toList() }.forEach(Listener::onRewardShopTradesReplaced)
     }
+
+    fun addListener(listener: Listener) = synchronized(listeners) { listeners += listener }
+    fun removeListener(listener: Listener) = synchronized(listeners) { listeners -= listener }
 
     fun all(shopId: ResourceLocation): Collection<RewardShopTrade> = trades[shopId]?.values ?: emptyList()
 
@@ -159,7 +168,7 @@ class RewardShopTradeRegistration {
     @Suppress("DEPRECATION")
     fun replaceTrades(
         isRewardShop: (ResourceLocation) -> Boolean = {
-            BuiltInRegistries.BLOCK.containsKey(it) && BuiltInRegistries.BLOCK.get(it) is RewardShopBlock
+            BuiltInRegistries.BLOCK.containsKey(it) && BuiltInRegistries.BLOCK.get(it) is RewardShopTarget
         },
     ) {
         val built = linkedMapOf<ResourceLocation, MutableList<RewardShopTrade>>()
