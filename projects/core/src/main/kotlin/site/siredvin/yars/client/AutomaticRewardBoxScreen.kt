@@ -34,15 +34,12 @@ class AutomaticRewardBoxScreen(
     override fun renderBg(graphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) {
         graphics.blit(TEXTURE, leftPos, topPos, 0, 0f, 0f, imageWidth, imageHeight, 512, 256)
         graphics.fill(leftPos + 107, topPos + 17, leftPos + 269, topPos + 75, 0xFFC6C6C6.toInt())
-        graphics.blit(CONTAINER_TEXTURE, leftPos + 117, topPos + 17, 0, 0f, 0f, 7, 35, 256, 256)
-        graphics.blit(CONTAINER_TEXTURE, leftPos + 124, topPos + 17, 0, 7f, 0f, 108, 35, 256, 256)
-        graphics.blit(CONTAINER_TEXTURE, leftPos + 232, topPos + 17, 0, 169f, 0f, 7, 35, 256, 256)
+        graphics.blit(CONTAINER_TEXTURE, leftPos + 124, topPos + 34, 0, 7f, 17f, 108, 18, 256, 256)
     }
 
     override fun renderLabels(graphics: GuiGraphics, mouseX: Int, mouseY: Int) {
         graphics.drawString(font, Component.translatable("merchant.trades"), 38, 6, 0x404040, false)
         graphics.drawString(font, title, 188 - font.width(title) / 2, 6, 0x404040, false)
-        graphics.drawString(font, Component.translatable("container.yars.automatic_reward_box.storage"), 125, 23, 0x404040, false)
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false)
     }
 

@@ -1,5 +1,4 @@
 {
-  "container.yars.automatic_reward_box.storage": "Storage",
   "jade.yars.no_trade": "None",
   "jade.yars.selected_trade": "Selected trade: %s"
 }
