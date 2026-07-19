@@ -157,7 +157,7 @@ object RewardShopClientTests {
             player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.0, boxPos.z + 2.5, 180f, 0f)
             useShopBlock(player, boxPos)
         }
-        thenIdle(2)
+        thenIdle(10)
         thenOnClient {
             val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box menu did not open")
             check(net.minecraft.client.Minecraft.getInstance().screen is AutomaticRewardBoxScreen) { "Automatic reward box did not open its merchant-derived screen" }
@@ -177,18 +177,20 @@ object RewardShopClientTests {
             player.inventory.setItem(9, ItemStack(Items.EMERALD, 4))
             useShopBlock(player, boxPos)
         }
-        thenIdle(2)
+        thenIdle(10)
         thenOnClient {
             val screen = net.minecraft.client.Minecraft.getInstance().screen as? AutomaticRewardBoxScreen ?: error("Automatic reward box screen closed")
             screen.mouseClicked(((screen.width - 276) / 2 + 10).toDouble(), ((screen.height - 166) / 2 + 20).toDouble(), 0)
             check(screen.menu.getSlot(0).item.isEmpty && screen.menu.getSlot(1).item.isEmpty) { "Trade selection moved payment into hidden merchant slots" }
         }
-        thenIdle(10)
+        thenWaitUntil {
+            val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
+            if (box.selectedTradeId != "selected") throw GameTestAssertException("Offer selection has not reached the server")
+        }
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             val menu = player.containerMenu as MerchantMenu
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
-            check(box.selectedTradeId == "selected") { "Offer selection was not stored" }
             check(menu.getSlot(0).item.isEmpty && menu.getSlot(2).item.isEmpty) { "Selection interface moved payment or result items" }
             check(!menu.quickMoveStack(player, 3).isEmpty) { "Payment could not be shift-clicked into box storage" }
             check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
@@ -207,6 +209,15 @@ object RewardShopClientTests {
             check(box.getItem(2).item === Items.DIAMOND) { "Reload removed stored output" }
             check(!menu.quickMoveStack(player, 41).isEmpty) { "Output could not be shift-clicked into player inventory" }
             check(box.getItem(2).isEmpty && player.inventory.contains(ItemStack(Items.DIAMOND))) { "Shift-click did not transfer stored output" }
+            RewardShopTradeRegistration().apply {
+                shop(automaticId.toString()) {
+                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
+                    it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
+                }
+                replaceTrades { true }
+            }
+            menu.setSelectionHint(0)
+            check(box.selectedTradeId == "selected") { "Restored trade could not be selected for Jade display" }
             player.closeContainer()
             player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.5, boxPos.z + 2.5, 180f, 45f)
         }

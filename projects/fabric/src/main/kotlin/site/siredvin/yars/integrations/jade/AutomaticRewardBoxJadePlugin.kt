@@ -3,6 +3,7 @@ package site.siredvin.yars.integrations.jade
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.ItemStack
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlock
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
 import snownee.jade.api.BlockAccessor
@@ -29,17 +30,28 @@ class AutomaticRewardBoxJadePlugin : IWailaPlugin {
 @Suppress("DEPRECATION")
 private object AutomaticRewardBoxJadeProvider : IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
     private val id = ResourceLocation("yars", "automatic_reward_box")
-    private const val SELECTED_TRADE = "YarsSelectedTrade"
+    private const val FIRST_COST = "YarsFirstCost"
+    private const val SECOND_COST = "YarsSecondCost"
+    private const val RESULT = "YarsResult"
 
     override fun getUid(): ResourceLocation = id
 
     override fun appendServerData(data: CompoundTag, accessor: BlockAccessor) {
-        (accessor.blockEntity as? AutomaticRewardBoxBlockEntity)?.selectedTradeId?.let { data.putString(SELECTED_TRADE, it) }
+        val trade = (accessor.blockEntity as? AutomaticRewardBoxBlockEntity)?.currentTrade() ?: return
+        data.put(FIRST_COST, trade.firstCost.save(CompoundTag()))
+        trade.secondCost?.let { data.put(SECOND_COST, it.save(CompoundTag())) }
+        data.put(RESULT, trade.result.save(CompoundTag()))
     }
 
     override fun appendTooltip(tooltip: ITooltip, accessor: BlockAccessor, config: IPluginConfig) {
-        val selected = accessor.serverData.getString(SELECTED_TRADE).takeIf(String::isNotEmpty)?.let(Component::literal)
-            ?: Component.translatable("jade.yars.no_trade")
-        tooltip.add(Component.translatable("jade.yars.selected_trade", selected))
+        if (!accessor.serverData.contains(FIRST_COST) || !accessor.serverData.contains(RESULT)) return
+        val elements = mutableListOf(tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(FIRST_COST))))
+        if (accessor.serverData.contains(SECOND_COST)) {
+            elements += tooltip.elementHelper.text(Component.literal(" + "))
+            elements += tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(SECOND_COST)))
+        }
+        elements += tooltip.elementHelper.text(Component.literal(" -> "))
+        elements += tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(RESULT)))
+        tooltip.add(elements)
     }
 }
