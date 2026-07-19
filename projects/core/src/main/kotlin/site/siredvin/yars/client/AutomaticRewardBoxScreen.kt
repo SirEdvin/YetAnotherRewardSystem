@@ -53,9 +53,14 @@ class AutomaticRewardBoxScreen(
             val y = topPos + 18 + row * 20
             if (selected == row + scroll) graphics.fill(x, y, x + 88, y + 20, 0x55FFFFFF)
             graphics.renderFakeItem(offer.costA, x + 5, y + 2)
-            offer.costB.takeUnless { it.isEmpty }?.let { graphics.renderFakeItem(it, x + 35, y + 2) }
+            graphics.renderItemDecorations(font, offer.costA, x + 5, y + 2)
+            offer.costB.takeUnless { it.isEmpty }?.let {
+                graphics.renderFakeItem(it, x + 35, y + 2)
+                graphics.renderItemDecorations(font, it, x + 35, y + 2)
+            }
             graphics.drawString(font, ">", x + 56, y + 6, 0x606060, false)
             graphics.renderFakeItem(offer.result, x + 68, y + 2)
+            graphics.renderItemDecorations(font, offer.result, x + 68, y + 2)
         }
         renderTooltip(graphics, mouseX, mouseY)
     }

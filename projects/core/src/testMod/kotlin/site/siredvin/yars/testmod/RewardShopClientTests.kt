@@ -167,7 +167,7 @@ object RewardShopClientTests {
             player.closeContainer()
             RewardShopTradeRegistration().apply {
                 shop(automaticId.toString()) {
-                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
                     it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
                 }
                 replaceTrades { true }
@@ -179,7 +179,7 @@ object RewardShopClientTests {
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
             check(box.selectedTradeId == "selected") { "Offer selection was not stored" }
             check(menu.getSlot(0).item.isEmpty && menu.getSlot(2).item.isEmpty) { "Selection interface moved payment or result items" }
-            box.setItem(0, ItemStack(Items.EMERALD))
+            box.setItem(0, ItemStack(Items.EMERALD, 4))
             check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
             menu.setSelectionHint(1)
             check(box.selectedTradeId == "replacement") { "Replacement selection was not stored" }
