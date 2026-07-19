@@ -16,7 +16,7 @@ val testiariumFabric = (dependencies.create("site.siredvin:testiarium-fabric-1.2
 
 baseShaking {
     projectPart.set("fabric")
-    integrationRepositories.set(true)
+    integrationRepositories.set(false)
     shake()
 }
 
@@ -50,24 +50,8 @@ net.fabricmc.loom.configuration.RemapConfigurations.setupForSourceSet(project, t
 
 repositories {
     maven {
-        name = "Latvian Mods"
-        url = uri("https://maven.latvian.dev/releases")
-        content { includeGroup("dev.latvian.mods") }
-    }
-    // location of the maven that hosts JEI files since January 2023
-    maven {
-        name = "Jared's maven"
-        url = uri("https://maven.blamejared.com/")
-        content {
-            includeGroup("mezz.jei")
-        }
-    }
-    maven {
-        name = "Modrinth"
-        url = uri("https://api.modrinth.com/maven")
-        content {
-            includeGroup("maven.modrinth")
-        }
+        name = "SirEdvin's Maven proxy"
+        url = uri("https://mvn.siredvin.site/minecraft")
     }
 }
 
