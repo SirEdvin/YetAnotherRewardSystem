@@ -19,6 +19,7 @@ import site.siredvin.testiarium.api.TestGroup
 import site.siredvin.testiarium.api.TestTags
 import site.siredvin.testiarium.api.Timeouts
 import site.siredvin.testiarium.api.sequence
+import site.siredvin.yars.client.AutomaticRewardBoxScreen
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
 import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
@@ -159,6 +160,7 @@ object RewardShopClientTests {
         thenIdle(2)
         thenOnClient {
             val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box menu did not open")
+            check(net.minecraft.client.Minecraft.getInstance().screen is AutomaticRewardBoxScreen) { "Automatic reward box did not open its merchant-derived screen" }
             check(menu.offers.isEmpty()) { "Unconfigured automatic reward box exposed offers" }
             check(menu.slots.size == 45) { "Automatic reward box menu did not expose all six storage slots" }
         }

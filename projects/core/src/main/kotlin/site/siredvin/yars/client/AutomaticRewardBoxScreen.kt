@@ -1,84 +1,25 @@
 package site.siredvin.yars.client
 
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.gui.screens.inventory.MerchantScreen
 import net.minecraft.network.chat.Component
-import net.minecraft.network.protocol.game.ServerboundSelectTradePacket
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.util.Mth
 import net.minecraft.world.entity.player.Inventory
-import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
+import net.minecraft.world.inventory.MerchantMenu
 
 class AutomaticRewardBoxScreen(
-    menu: AutomaticRewardBoxMenu,
+    menu: MerchantMenu,
     inventory: Inventory,
     title: Component,
-) : AbstractContainerScreen<AutomaticRewardBoxMenu>(menu, inventory, title) {
+) : MerchantScreen(menu, inventory, title) {
     companion object {
         @Suppress("DEPRECATION")
-        private val TEXTURE = ResourceLocation("textures/gui/container/villager2.png")
-
-        @Suppress("DEPRECATION")
         private val CONTAINER_TEXTURE = ResourceLocation("textures/gui/container/generic_54.png")
-        private const val VISIBLE_OFFERS = 7
-    }
-
-    private var selected = 0
-    private var scroll = 0
-
-    init {
-        imageWidth = 276
-        inventoryLabelX = 107
     }
 
     override fun renderBg(graphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) {
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0f, 0f, imageWidth, imageHeight, 512, 256)
+        super.renderBg(graphics, partialTick, mouseX, mouseY)
         graphics.fill(leftPos + 107, topPos + 17, leftPos + 269, topPos + 75, 0xFFC6C6C6.toInt())
         graphics.blit(CONTAINER_TEXTURE, leftPos + 124, topPos + 34, 0, 7f, 17f, 108, 18, 256, 256)
-    }
-
-    override fun renderLabels(graphics: GuiGraphics, mouseX: Int, mouseY: Int) {
-        graphics.drawString(font, Component.translatable("merchant.trades"), 38, 6, 0x404040, false)
-        graphics.drawString(font, title, 188 - font.width(title) / 2, 6, 0x404040, false)
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false)
-    }
-
-    override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        renderBackground(graphics)
-        super.render(graphics, mouseX, mouseY, partialTick)
-        menu.offers.drop(scroll).take(VISIBLE_OFFERS).forEachIndexed { row, offer ->
-            val x = leftPos + 5
-            val y = topPos + 18 + row * 20
-            if (selected == row + scroll) graphics.fill(x, y, x + 88, y + 20, 0x55FFFFFF)
-            graphics.renderFakeItem(offer.costA, x + 5, y + 2)
-            graphics.renderItemDecorations(font, offer.costA, x + 5, y + 2)
-            offer.costB.takeUnless { it.isEmpty }?.let {
-                graphics.renderFakeItem(it, x + 35, y + 2)
-                graphics.renderItemDecorations(font, it, x + 35, y + 2)
-            }
-            graphics.drawString(font, ">", x + 56, y + 6, 0x606060, false)
-            graphics.renderFakeItem(offer.result, x + 68, y + 2)
-            graphics.renderItemDecorations(font, offer.result, x + 68, y + 2)
-        }
-        renderTooltip(graphics, mouseX, mouseY)
-    }
-
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        val row = ((mouseY - topPos - 18) / 20).toInt()
-        if (mouseX >= leftPos + 5 && mouseX < leftPos + 93 && row in 0 until VISIBLE_OFFERS) {
-            val index = row + scroll
-            if (index < menu.offers.size) {
-                selected = index
-                menu.setSelectionHint(index)
-                minecraft?.connection?.send(ServerboundSelectTradePacket(index))
-                return true
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button)
-    }
-
-    override fun mouseScrolled(mouseX: Double, mouseY: Double, delta: Double): Boolean {
-        scroll = Mth.clamp(scroll - delta.toInt(), 0, (menu.offers.size - VISIBLE_OFFERS).coerceAtLeast(0))
-        return true
     }
 }

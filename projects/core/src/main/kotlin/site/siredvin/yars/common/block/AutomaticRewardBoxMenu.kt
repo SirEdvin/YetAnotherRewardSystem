@@ -11,7 +11,7 @@ import net.minecraft.world.item.ItemStack
 import site.siredvin.yars.mixins.SlotAccessor
 
 object AutomaticRewardBoxMenus {
-    lateinit var type: MenuType<AutomaticRewardBoxMenu>
+    lateinit var type: MenuType<MerchantMenu>
 }
 
 class AutomaticRewardBoxMenu : MerchantMenu {

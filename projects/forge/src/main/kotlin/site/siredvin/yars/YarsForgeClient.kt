@@ -8,13 +8,14 @@ import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import site.siredvin.yars.client.AutomaticRewardBoxScreen
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenus
 
 @Mod.EventBusSubscriber(modid = YarsCore.MOD_ID, value = [Dist.CLIENT], bus = Mod.EventBusSubscriber.Bus.MOD)
 object YarsForgeClient {
     @SubscribeEvent
     fun onClientSetup(event: FMLClientSetupEvent) {
         YarsClientCore.onInit()
-        event.enqueueWork { MenuScreens.register(YarsForge.automaticRewardBoxMenu.get(), ::AutomaticRewardBoxScreen) }
+        event.enqueueWork { MenuScreens.register(AutomaticRewardBoxMenus.type, ::AutomaticRewardBoxScreen) }
     }
 
     @SubscribeEvent

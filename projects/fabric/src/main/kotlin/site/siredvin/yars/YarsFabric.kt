@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.MenuType
+import net.minecraft.world.inventory.MerchantMenu
 import site.siredvin.broccolium.FabricBroccolium
 import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
 import site.siredvin.yars.common.block.AutomaticRewardBoxMenus
@@ -22,7 +23,7 @@ object YarsFabric : ModInitializer {
         AutomaticRewardBoxMenus.type = Registry.register(
             BuiltInRegistries.MENU,
             ResourceLocation(YarsCore.MOD_ID, "automatic_reward_box"),
-            MenuType(::AutomaticRewardBoxMenu, FeatureFlags.DEFAULT_FLAGS),
+            MenuType<MerchantMenu>({ id, inventory -> AutomaticRewardBoxMenu(id, inventory) }, FeatureFlags.DEFAULT_FLAGS),
         )
     }
 }

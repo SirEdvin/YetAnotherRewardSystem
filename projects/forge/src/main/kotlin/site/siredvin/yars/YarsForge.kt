@@ -4,6 +4,7 @@ import dev.latvian.mods.kubejs.core.EntityKJS
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.MenuType
+import net.minecraft.world.inventory.MerchantMenu
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
@@ -32,7 +33,7 @@ object YarsForge {
         DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB.key(), YarsCore.MOD_ID)
     val menusRegistry: DeferredRegister<MenuType<*>> = DeferredRegister.create(ForgeRegistries.MENU_TYPES, YarsCore.MOD_ID)
     val automaticRewardBoxMenu = menusRegistry.register("automatic_reward_box") {
-        MenuType(::AutomaticRewardBoxMenu, FeatureFlags.DEFAULT_FLAGS)
+        MenuType<MerchantMenu>({ id, inventory -> AutomaticRewardBoxMenu(id, inventory) }, FeatureFlags.DEFAULT_FLAGS)
     }
 
     init {
@@ -50,6 +51,7 @@ object YarsForge {
 
     @Suppress("UNUSED_PARAMETER")
     fun commonSetup(event: FMLCommonSetupEvent) {
-        AutomaticRewardBoxMenus.type = automaticRewardBoxMenu.get()
+        @Suppress("UNCHECKED_CAST")
+        AutomaticRewardBoxMenus.type = automaticRewardBoxMenu.get() as MenuType<MerchantMenu>
     }
 }
