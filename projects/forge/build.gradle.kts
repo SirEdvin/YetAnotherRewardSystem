@@ -61,6 +61,7 @@ dependencies {
     implementation(fg.deobf(libs.kubejs.forge))
     implementation(fg.deobf(libs.architectury.forge))
     implementation(fg.deobf(libs.rhino.forge))
+    implementation(fg.deobf(libs.jade.forge))
 
     libs.bundles.externalMods.forge.runtime.get().map { runtimeOnly(fg.deobf(it)) }
 }

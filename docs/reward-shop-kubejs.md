@@ -62,6 +62,8 @@ The first two inventory slots hold payment and the remaining seven hold results.
 
 Progress is local to each placed box and stored separately by full trade ID. Switching trades does not reset either trade's staged progress. A reload that removes or invalidates the selected trade stops processing but retains its ID, progress, and contents; restoring the same trade ID resumes it. Inputs that no longer match remain recoverable and are never deleted.
 
+When Jade is installed, looking at an automatic reward box shows its selected trade ID in the block tooltip.
+
 Adding or changing an automatic reward-box block requires a full restart. Its trades still update through `/reload`. YARS provides the block type and behavior only; the pack must create every block and provide its presentation or assets.
 
 ## Player History

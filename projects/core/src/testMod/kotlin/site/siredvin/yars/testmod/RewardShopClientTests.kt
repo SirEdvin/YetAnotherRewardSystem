@@ -192,7 +192,11 @@ object RewardShopClientTests {
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
             check(box.selectedTradeId == "replacement") { "Stale offer changed the selection" }
             check(box.getItem(2).item === Items.DIAMOND) { "Reload removed stored output" }
+            player.closeContainer()
+            player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.5, boxPos.z + 2.5, 180f, 45f)
         }
+        thenIdle(100)
+        thenScreenshot("automatic-reward-box-jade", showGui = true)
     }
 }
 

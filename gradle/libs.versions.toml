@@ -42,6 +42,8 @@ rhino = "2001.2.3-build.10"
 # Dev mod dependenceis
 jei = "15.1.0.19"
 rei = "12.1.785"
+jade-fabric = "11.12.3+fabric"
+jade-forge = "11.13.2+forge"
 
 # Testing
 autoService = "1.1.1"
@@ -103,6 +105,8 @@ peripheralium-jjar-forge = {module = "site.siredvin:peripheralium-forge-1.20.1",
 # Dev mod dependencies
 jei-forge = { module = "mezz.jei:jei-1.20.1-forge", version.ref = "jei" }
 rei-fabric = {module = "me.shedaniel:RoughlyEnoughItems-fabric", version.ref = "rei"}
+jade-fabric = {module = "maven.modrinth:jade", version.ref = "jade-fabric"}
+jade-forge = {module = "maven.modrinth:jade", version.ref = "jade-forge"}
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 vanillaGradle = { id = "org.spongepowered.gradle.vanilla", version.ref = "sponge"}

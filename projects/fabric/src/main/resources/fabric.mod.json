@@ -28,6 +28,12 @@
         "adapter": "kotlin",
         "value": "site.siredvin.yars.YarsFabricClient"
       }
+    ],
+    "jade": [
+      {
+        "adapter": "kotlin",
+        "value": "site.siredvin.yars.integrations.jade.AutomaticRewardBoxJadePlugin"
+      }
     ]
   },
   "mixins": [
