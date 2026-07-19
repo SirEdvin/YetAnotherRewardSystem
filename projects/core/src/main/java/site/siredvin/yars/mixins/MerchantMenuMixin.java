@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import site.siredvin.yars.common.rewardshop.RewardShopMerchant;
 import site.siredvin.yars.common.block.AutomaticRewardBoxMerchant;
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenu;
 
 @Mixin(MerchantMenu.class)
 public abstract class MerchantMenuMixin {
@@ -34,7 +35,9 @@ public abstract class MerchantMenuMixin {
 
     @Inject(method = "tryMoveItems", at = @At("HEAD"), cancellable = true)
     private void yars$skipAutomaticRewardBoxPayments(int index, CallbackInfo callback) {
-        if (trader instanceof AutomaticRewardBoxMerchant) callback.cancel();
+        if ((Object) this instanceof AutomaticRewardBoxMenu || trader instanceof AutomaticRewardBoxMerchant) {
+            callback.cancel();
+        }
     }
 
     @Inject(method = "setSelectionHint", at = @At("TAIL"))

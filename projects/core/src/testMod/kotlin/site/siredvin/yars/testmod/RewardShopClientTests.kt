@@ -81,7 +81,7 @@ object RewardShopClientTests {
             player.connection.teleport(shopPos.x + 0.5, shopPos.y + 1.0, shopPos.z + 2.5, 180f, 0f)
             useShopBlock(player, shopPos)
         }
-        thenIdle(2)
+        thenIdle(10)
         thenOnClient {
             check(screen != null) { "Empty reward shop screen did not open" }
             val menu = player?.containerMenu as? MerchantMenu ?: error("Merchant menu did not open")
@@ -100,7 +100,7 @@ object RewardShopClientTests {
             }
             useShopBlock(player, shopPos)
         }
-        thenIdle(2)
+        thenIdle(10)
         thenOnClient {
             check(player?.containerMenu?.type == MenuType.MERCHANT) { "Configured merchant menu did not open" }
         }
@@ -174,14 +174,22 @@ object RewardShopClientTests {
                 }
                 replaceTrades { true }
             }
+            player.inventory.setItem(9, ItemStack(Items.EMERALD, 4))
             useShopBlock(player, boxPos)
+        }
+        thenIdle(2)
+        thenOnClient {
+            val screen = net.minecraft.client.Minecraft.getInstance().screen as? AutomaticRewardBoxScreen ?: error("Automatic reward box screen closed")
+            screen.mouseClicked(((screen.width - 276) / 2 + 10).toDouble(), ((screen.height - 166) / 2 + 20).toDouble(), 0)
+            check(screen.menu.getSlot(0).item.isEmpty && screen.menu.getSlot(1).item.isEmpty) { "Trade selection moved payment into hidden merchant slots" }
+        }
+        thenIdle(10)
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             val menu = player.containerMenu as MerchantMenu
-            menu.setSelectionHint(0)
-            menu.tryMoveItems(0)
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
             check(box.selectedTradeId == "selected") { "Offer selection was not stored" }
             check(menu.getSlot(0).item.isEmpty && menu.getSlot(2).item.isEmpty) { "Selection interface moved payment or result items" }
-            player.inventory.setItem(9, ItemStack(Items.EMERALD, 4))
             check(!menu.quickMoveStack(player, 3).isEmpty) { "Payment could not be shift-clicked into box storage" }
             check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
             menu.setSelectionHint(1)
