@@ -30,7 +30,7 @@ class AutomaticRewardBoxBlockEntity(
     RewardShopTrades.Listener {
     companion object {
         const val PAYMENT_SLOTS = 2
-        const val SIZE = 9
+        const val SIZE = 6
         private const val ITEMS_KEY = "Items"
         private const val SELECTED_TRADE_KEY = "SelectedTrade"
         private const val COMPLETED_KEY = "Completed"

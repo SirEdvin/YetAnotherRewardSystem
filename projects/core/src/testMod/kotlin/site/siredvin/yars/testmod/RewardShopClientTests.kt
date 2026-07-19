@@ -160,7 +160,7 @@ object RewardShopClientTests {
         thenOnClient {
             val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box menu did not open")
             check(menu.offers.isEmpty()) { "Unconfigured automatic reward box exposed offers" }
-            check(menu.slots.size == 48) { "Automatic reward box menu did not expose all nine storage slots" }
+            check(menu.slots.size == 45) { "Automatic reward box menu did not expose all six storage slots" }
         }
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
@@ -179,7 +179,8 @@ object RewardShopClientTests {
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
             check(box.selectedTradeId == "selected") { "Offer selection was not stored" }
             check(menu.getSlot(0).item.isEmpty && menu.getSlot(2).item.isEmpty) { "Selection interface moved payment or result items" }
-            box.setItem(0, ItemStack(Items.EMERALD, 4))
+            player.inventory.setItem(9, ItemStack(Items.EMERALD, 4))
+            check(!menu.quickMoveStack(player, 3).isEmpty) { "Payment could not be shift-clicked into box storage" }
             check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
             menu.setSelectionHint(1)
             check(box.selectedTradeId == "replacement") { "Replacement selection was not stored" }
@@ -194,6 +195,8 @@ object RewardShopClientTests {
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
             check(box.selectedTradeId == "replacement") { "Stale offer changed the selection" }
             check(box.getItem(2).item === Items.DIAMOND) { "Reload removed stored output" }
+            check(!menu.quickMoveStack(player, 41).isEmpty) { "Output could not be shift-clicked into player inventory" }
+            check(box.getItem(2).isEmpty && player.inventory.contains(ItemStack(Items.DIAMOND))) { "Shift-click did not transfer stored output" }
             player.closeContainer()
             player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.5, boxPos.z + 2.5, 180f, 45f)
         }

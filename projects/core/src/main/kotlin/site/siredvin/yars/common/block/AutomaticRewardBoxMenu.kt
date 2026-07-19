@@ -30,7 +30,7 @@ class AutomaticRewardBoxMenu : MerchantMenu {
         }
         repeat(AutomaticRewardBoxBlockEntity.SIZE) { index ->
             addSlot(
-                object : Slot(storage, index, 136 + index % 3 * 18, 19 + index / 3 * 18) {
+                object : Slot(storage, index, 125 + index * 18, 35) {
                     override fun mayPlace(stack: ItemStack): Boolean = index < AutomaticRewardBoxBlockEntity.PAYMENT_SLOTS && container.canPlaceItem(index, stack)
                 },
             )
@@ -38,5 +38,16 @@ class AutomaticRewardBoxMenu : MerchantMenu {
     }
 
     override fun getType(): MenuType<*> = AutomaticRewardBoxMenus.type
-    override fun quickMoveStack(player: Player, index: Int): ItemStack = ItemStack.EMPTY
+    override fun quickMoveStack(player: Player, index: Int): ItemStack {
+        if (index !in slots.indices || index < 3) return ItemStack.EMPTY
+        val slot = slots[index]
+        if (!slot.hasItem()) return ItemStack.EMPTY
+        val stack = slot.item
+        val original = stack.copy()
+        val moved = if (index >= 39) moveItemStackTo(stack, 3, 39, true) else moveItemStackTo(stack, 39, slots.size, false)
+        if (!moved) return ItemStack.EMPTY
+        if (stack.isEmpty) slot.setByPlayer(ItemStack.EMPTY) else slot.setChanged()
+        slot.onTake(player, stack)
+        return original
+    }
 }
