@@ -4,6 +4,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.phys.Vec2
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlock
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
 import snownee.jade.api.BlockAccessor
@@ -47,10 +48,10 @@ private object AutomaticRewardBoxJadeProvider : IBlockComponentProvider, IServer
         if (!accessor.serverData.contains(FIRST_COST) || !accessor.serverData.contains(RESULT)) return
         val elements = mutableListOf(tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(FIRST_COST))))
         if (accessor.serverData.contains(SECOND_COST)) {
-            elements += tooltip.elementHelper.text(Component.literal(" + "))
+            elements += tooltip.elementHelper.text(Component.literal(" + ")).translate(Vec2(0f, 4f))
             elements += tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(SECOND_COST)))
         }
-        elements += tooltip.elementHelper.text(Component.literal(" -> "))
+        elements += tooltip.elementHelper.text(Component.literal(" -> ")).translate(Vec2(0f, 4f))
         elements += tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(RESULT)))
         tooltip.add(elements)
     }
