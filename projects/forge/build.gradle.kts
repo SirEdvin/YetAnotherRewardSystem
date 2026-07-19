@@ -14,7 +14,7 @@ val testiariumCore = configurations.detachedConfiguration(
 
 baseShaking {
     projectPart.set("forge")
-    integrationRepositories.set(true)
+    integrationRepositories.set(false)
     shake()
 }
 
@@ -49,17 +49,8 @@ val testMod = sourceSets.create("testMod") {
 
 repositories {
     maven {
-        name = "Latvian Mods"
-        url = uri("https://maven.latvian.dev/releases")
-        content { includeGroup("dev.latvian.mods") }
-    }
-    // location of the maven that hosts JEI files since January 2023
-    maven {
-        name = "Jared's maven"
-        url = uri("https://maven.blamejared.com/")
-        content {
-            includeGroup("mezz.jei")
-        }
+        name = "SirEdvin's Maven proxy"
+        url = uri("https://mvn.siredvin.site/minecraft")
     }
 }
 
