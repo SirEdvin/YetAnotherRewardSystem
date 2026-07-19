@@ -11,8 +11,6 @@ import net.minecraft.world.WorldlyContainer
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.AbstractContainerMenu
-import net.minecraft.world.inventory.ChestMenu
-import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity
@@ -73,7 +71,7 @@ class AutomaticRewardBoxBlockEntity(
     }
 
     override fun getDefaultName(): Component = blockState.block.name
-    override fun createMenu(id: Int, inventory: Inventory): AbstractContainerMenu = ChestMenu(MenuType.GENERIC_9x1, id, inventory, this, 1)
+    override fun createMenu(id: Int, inventory: Inventory): AbstractContainerMenu = AutomaticRewardBoxMenu(id, inventory, AutomaticRewardBoxMerchant(inventory.player, this), this)
     override fun canOpen(player: Player): Boolean = !isRemoved && player.distanceToSqr(worldPosition.x + 0.5, worldPosition.y + 0.5, worldPosition.z + 0.5) <= 64.0
     override fun getSlotsForFace(side: Direction): IntArray = IntArray(SIZE) { it }
     override fun canPlaceItem(slot: Int, stack: ItemStack): Boolean = slot < PAYMENT_SLOTS && acceptsPayment(stack)

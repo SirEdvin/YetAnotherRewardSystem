@@ -20,6 +20,7 @@ import site.siredvin.testiarium.api.TestTags
 import site.siredvin.testiarium.api.Timeouts
 import site.siredvin.testiarium.api.sequence
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
@@ -157,8 +158,9 @@ object RewardShopClientTests {
         }
         thenIdle(2)
         thenOnClient {
-            val menu = player?.containerMenu as? MerchantMenu ?: error("Automatic reward box menu did not open")
+            val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box menu did not open")
             check(menu.offers.isEmpty()) { "Unconfigured automatic reward box exposed offers" }
+            check(menu.slots.size == 48) { "Automatic reward box menu did not expose all nine storage slots" }
         }
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")

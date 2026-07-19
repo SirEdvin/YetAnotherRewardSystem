@@ -56,7 +56,7 @@ Trade-script changes apply on `/reload`. A successful reload replaces all shop r
 
 ## Automatic Reward Boxes
 
-`yars:automatic_reward_box` is also startup-script-only and uses its block ID as its shop ID. Use the block normally to open the merchant-style trade list and select one trade; this screen never accepts payment or grants results. Sneak-use opens the box inventory so stored items can be recovered.
+`yars:automatic_reward_box` is also startup-script-only and uses its block ID as its shop ID. Using the block opens its trade list and internal storage together: select a trade on the left, supply payment through the first two storage slots, and recover stored results from the remaining seven. The screen never performs a manual merchant trade.
 
 The first two inventory slots hold payment and the remaining seven hold results. Item automation may insert only exact item-and-NBT matches for either cost of the currently selected trade. It may extract only from result slots. Whenever committed insertion completes the selected costs, the box performs as many trades as its payments and result capacity allow.
 

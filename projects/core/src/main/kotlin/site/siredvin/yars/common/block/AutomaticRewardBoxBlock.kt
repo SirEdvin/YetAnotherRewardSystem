@@ -37,7 +37,10 @@ class AutomaticRewardBoxBlock(
     ): InteractionResult {
         if (!level.isClientSide && player is ServerPlayer) {
             val box = level.getBlockEntity(pos) as? AutomaticRewardBoxBlockEntity ?: return InteractionResult.FAIL
-            if (player.isShiftKeyDown) player.openMenu(box) else AutomaticRewardBoxMerchant(player, box).openTradingScreen(player, state.block.name, 1)
+            player.openMenu(box).ifPresent { id ->
+                val menu = player.containerMenu as AutomaticRewardBoxMenu
+                player.sendMerchantOffers(id, menu.offers, 1, 0, false, false)
+            }
         }
         return InteractionResult.sidedSuccess(level.isClientSide)
     }
