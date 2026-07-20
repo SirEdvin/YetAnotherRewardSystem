@@ -10,5 +10,8 @@
     "MerchantMenuMixin",
     "MerchantResultSlotMixin",
     "SlotAccessor"
+  ],
+  "client": [
+    "client.MerchantScreenAccessor"
   ]
 }

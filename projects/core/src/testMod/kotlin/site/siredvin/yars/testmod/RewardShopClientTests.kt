@@ -196,8 +196,14 @@ object RewardShopClientTests {
             check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
             menu.setSelectionHint(1)
             check(box.selectedTradeId == "replacement") { "Replacement selection was not stored" }
+            player.closeContainer()
+            useShopBlock(player, boxPos)
         }
-        thenIdle(2)
+        thenIdle(10)
+        thenOnClient {
+            val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box did not reopen")
+            check(menu.selectedTradeIndex == 0) { "Reopened automatic reward box did not restore its selected trade" }
+        }
         thenScreenshot("automatic-reward-box-selection", showGui = true)
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
@@ -216,8 +222,7 @@ object RewardShopClientTests {
                 }
                 replaceTrades { true }
             }
-            menu.setSelectionHint(0)
-            check(box.selectedTradeId == "selected") { "Restored trade could not be selected for Jade display" }
+            check(box.selectTrade("selected")) { "Restored trade could not be selected for Jade display" }
             player.closeContainer()
             player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.5, boxPos.z + 2.5, 180f, 45f)
         }

@@ -12,5 +12,6 @@
     "SlotAccessor"
   ],
   "client": [
+    "client.MerchantScreenAccessor"
   ]
 }
