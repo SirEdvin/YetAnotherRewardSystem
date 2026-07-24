@@ -7,9 +7,12 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "AutomaticRewardBoxItemHandlerMixin",
     "MerchantMenuMixin",
-    "MerchantResultSlotMixin"
+    "MerchantResultSlotMixin",
+    "SlotAccessor"
   ],
   "client": [
+    "client.MerchantScreenAccessor"
   ]
 }

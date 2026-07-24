@@ -1,7 +1,9 @@
 package site.siredvin.yars
 
-import dev.latvian.mods.kubejs.core.EntityKJS
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.flag.FeatureFlags
+import net.minecraft.world.inventory.MenuType
+import net.minecraft.world.inventory.MerchantMenu
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
@@ -11,8 +13,9 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import site.siredvin.broccolium.ForgeBroccolium
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenus
 import site.siredvin.yars.common.configuration.ConfigHolder
-import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.forge.ForgeModRecipeIngredients
 import site.siredvin.yars.forge.YarsForgePlatform
 import thedarkcolour.kotlinforforge.forge.LOADING_CONTEXT
@@ -26,20 +29,26 @@ object YarsForge {
     val itemsRegistry: DeferredRegister<Item> = DeferredRegister.create(ForgeRegistries.ITEMS, YarsCore.MOD_ID)
     val creativeTabRegistry: DeferredRegister<CreativeModeTab> =
         DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB.key(), YarsCore.MOD_ID)
+    val menusRegistry: DeferredRegister<MenuType<*>> = DeferredRegister.create(ForgeRegistries.MENU_TYPES, YarsCore.MOD_ID)
+    val automaticRewardBoxMenu = menusRegistry.register("automatic_reward_box") {
+        MenuType<MerchantMenu>({ id, inventory -> AutomaticRewardBoxMenu(id, inventory) }, FeatureFlags.DEFAULT_FLAGS)
+    }
 
     init {
         ForgeBroccolium.sayHi()
         LOADING_CONTEXT.registerConfig(ModConfig.Type.COMMON, ConfigHolder.commonSpec, "${YarsCore.MOD_ID}.toml")
         YarsCore.configure(YarsForgePlatform, ForgeModRecipeIngredients)
-        RewardShopTradeHistory.configure { (it as EntityKJS).`kjs$getPersistentData`() }
         val eventBus = MOD_CONTEXT.getKEventBus()
         eventBus.addListener(this::commonSetup)
         blocksRegistry.register(eventBus)
         itemsRegistry.register(eventBus)
         creativeTabRegistry.register(eventBus)
+        menusRegistry.register(eventBus)
     }
 
     @Suppress("UNUSED_PARAMETER")
     fun commonSetup(event: FMLCommonSetupEvent) {
+        @Suppress("UNCHECKED_CAST")
+        AutomaticRewardBoxMenus.type = automaticRewardBoxMenu.get() as MenuType<MerchantMenu>
     }
 }

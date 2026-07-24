@@ -2,6 +2,7 @@ package site.siredvin.yars.common.rewardshop
 
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.entity.player.Player
@@ -20,7 +21,7 @@ class RewardShopMerchant(
     private val shopId: ResourceLocation,
 ) : Merchant {
     private var tradingPlayer: Player? = player
-    private val trades = IdentityHashMap<MerchantOffer, String>()
+    private val trades = IdentityHashMap<MerchantOffer, ResourceLocation>()
     private val approvedOffers = Collections.newSetFromMap(IdentityHashMap<MerchantOffer, Boolean>())
     private var offers = MerchantOffers()
 
@@ -46,7 +47,7 @@ class RewardShopMerchant(
     override fun notifyTrade(offer: MerchantOffer) {
         if (!approvedOffers.remove(offer)) return
         val tradeId = trades[offer] ?: return
-        RewardShopTradeHistory.increment(player, shopId, tradeId)
+        RewardShopTradeHistory.get(player.level() as ServerLevel).increment(player.uuid, tradeId)
         rebuildOffers()
         player.sendMerchantOffers(player.containerMenu.containerId, offers, 1, 0, false, false)
     }
@@ -54,7 +55,7 @@ class RewardShopMerchant(
     fun approveTrade(offer: MerchantOffer?): Boolean {
         val tradeId = offer?.let(trades::get) ?: return false
         val trade = RewardShopTrades.find(shopId, tradeId) ?: return false
-        val resolved = runCatching { trade.resolve(RewardShopTradeHistory.completed(player, shopId, tradeId)) }.getOrNull() ?: return false
+        val resolved = runCatching { trade.resolve(RewardShopTradeHistory.get(player.level() as ServerLevel).completed(player.uuid, tradeId)) }.getOrNull() ?: return false
         val matches = ItemStack.matches(offer.result, resolved.result) &&
             ItemStack.matches(offer.costA, resolved.firstCost) &&
             ItemStack.matches(offer.costB, resolved.secondCost ?: ItemStack.EMPTY)
@@ -80,7 +81,7 @@ class RewardShopMerchant(
         offers = MerchantOffers()
         RewardShopTrades.all(shopId).forEach { trade ->
             val resolved = try {
-                trade.resolve(RewardShopTradeHistory.completed(player, shopId, trade.id))
+                trade.resolve(RewardShopTradeHistory.get(player.level() as ServerLevel).completed(player.uuid, trade.id))
             } catch (exception: RuntimeException) {
                 YarsCore.LOGGER.error("Skipping invalid reward shop trade ${trade.id}", exception)
                 null

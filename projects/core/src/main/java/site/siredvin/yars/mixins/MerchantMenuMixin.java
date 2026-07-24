@@ -13,6 +13,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import site.siredvin.yars.common.rewardshop.RewardShopMerchant;
+import site.siredvin.yars.common.block.AutomaticRewardBoxMerchant;
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenu;
 
 @Mixin(MerchantMenu.class)
 public abstract class MerchantMenuMixin {
@@ -22,16 +24,30 @@ public abstract class MerchantMenuMixin {
     @Inject(method = "quickMoveStack", at = @At("HEAD"), cancellable = true)
     private void yars$validateQuickMovedRewardShopOffer(
             Player player, int index, CallbackInfoReturnable<ItemStack> callback) {
-        if (index == 2
+        if (trader instanceof AutomaticRewardBoxMerchant) {
+            callback.setReturnValue(ItemStack.EMPTY);
+        } else if (index == 2
                 && trader instanceof RewardShopMerchant rewardShop
                 && !rewardShop.approveTrade(tradeContainer.getActiveOffer())) {
             callback.setReturnValue(ItemStack.EMPTY);
         }
     }
 
+    @Inject(method = "tryMoveItems", at = @At("HEAD"), cancellable = true)
+    private void yars$skipAutomaticRewardBoxPayments(int index, CallbackInfo callback) {
+        if ((Object) this instanceof AutomaticRewardBoxMenu || trader instanceof AutomaticRewardBoxMerchant) {
+            callback.cancel();
+        }
+    }
+
+    @Inject(method = "setSelectionHint", at = @At("TAIL"))
+    private void yars$selectAutomaticRewardBoxTrade(int index, CallbackInfo callback) {
+        if (trader instanceof AutomaticRewardBoxMerchant rewardBox) rewardBox.select(index);
+    }
+
     @Inject(method = "playTradeSound", at = @At("HEAD"), cancellable = true)
     private void yars$skipEntityTradeSound(CallbackInfo callback) {
-        if (trader instanceof RewardShopMerchant) {
+        if (trader instanceof RewardShopMerchant || trader instanceof AutomaticRewardBoxMerchant) {
             callback.cancel();
         }
     }
