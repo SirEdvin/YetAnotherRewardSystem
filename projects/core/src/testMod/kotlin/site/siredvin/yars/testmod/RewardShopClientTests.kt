@@ -19,6 +19,9 @@ import site.siredvin.testiarium.api.TestGroup
 import site.siredvin.testiarium.api.TestTags
 import site.siredvin.testiarium.api.Timeouts
 import site.siredvin.testiarium.api.sequence
+import site.siredvin.yars.client.AutomaticRewardBoxScreen
+import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
+import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
 import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
@@ -78,7 +81,7 @@ object RewardShopClientTests {
             player.connection.teleport(shopPos.x + 0.5, shopPos.y + 1.0, shopPos.z + 2.5, 180f, 0f)
             useShopBlock(player, shopPos)
         }
-        thenIdle(2)
+        thenIdle(10)
         thenOnClient {
             check(screen != null) { "Empty reward shop screen did not open" }
             val menu = player?.containerMenu as? MerchantMenu ?: error("Merchant menu did not open")
@@ -97,7 +100,7 @@ object RewardShopClientTests {
             }
             useShopBlock(player, shopPos)
         }
-        thenIdle(2)
+        thenIdle(10)
         thenOnClient {
             check(player?.containerMenu?.type == MenuType.MERCHANT) { "Configured merchant menu did not open" }
         }
@@ -138,6 +141,93 @@ object RewardShopClientTests {
             check(menu.getSlot(0).item.count == 1) { "Stale offer consumed its payment" }
             check(RewardShopTradeHistory.completed(player, shopId, "stale") == 1) { "Stale offer changed purchase history" }
         }
+    }
+
+    @JvmStatic
+    @ClientGameTest(template = "empty", timeoutTicks = Timeouts.SECOND * 20)
+    @TestGroup(TestTags.CLIENT)
+    fun automaticRewardBoxSelectionAndExecution(helper: GameTestHelper) = helper.sequence {
+        val automaticId = ResourceLocation("yars_test", "automatic_reward_box")
+        lateinit var boxPos: BlockPos
+        thenExecute {
+            boxPos = helper.absolutePos(BlockPos(1, 1, 1))
+            helper.level.setBlockAndUpdate(boxPos, BuiltInRegistries.BLOCK.get(automaticId).defaultBlockState())
+            RewardShopTrades.replace(emptyMap())
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.0, boxPos.z + 2.5, 180f, 0f)
+            useShopBlock(player, boxPos)
+        }
+        thenIdle(10)
+        thenOnClient {
+            val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box menu did not open")
+            check(net.minecraft.client.Minecraft.getInstance().screen is AutomaticRewardBoxScreen) { "Automatic reward box did not open its merchant-derived screen" }
+            check(menu.offers.isEmpty()) { "Unconfigured automatic reward box exposed offers" }
+            check(menu.slots.size == 45) { "Automatic reward box menu did not expose all six storage slots" }
+        }
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            player.closeContainer()
+            RewardShopTradeRegistration().apply {
+                shop(automaticId.toString()) {
+                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
+                    it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
+                }
+                replaceTrades { true }
+            }
+            player.inventory.setItem(9, ItemStack(Items.EMERALD, 4))
+            useShopBlock(player, boxPos)
+        }
+        thenIdle(10)
+        thenOnClient {
+            val screen = net.minecraft.client.Minecraft.getInstance().screen as? AutomaticRewardBoxScreen ?: error("Automatic reward box screen closed")
+            screen.mouseClicked(((screen.width - 276) / 2 + 10).toDouble(), ((screen.height - 166) / 2 + 20).toDouble(), 0)
+            check(screen.menu.getSlot(0).item.isEmpty && screen.menu.getSlot(1).item.isEmpty) { "Trade selection moved payment into hidden merchant slots" }
+        }
+        thenWaitUntil {
+            val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
+            if (box.selectedTradeId != "selected") throw GameTestAssertException("Offer selection has not reached the server")
+        }
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            val menu = player.containerMenu as MerchantMenu
+            val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
+            check(menu.getSlot(0).item.isEmpty && menu.getSlot(2).item.isEmpty) { "Selection interface moved payment or result items" }
+            check(!menu.quickMoveStack(player, 3).isEmpty) { "Payment could not be shift-clicked into box storage" }
+            check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
+            menu.setSelectionHint(1)
+            check(box.selectedTradeId == "replacement") { "Replacement selection was not stored" }
+            player.closeContainer()
+            useShopBlock(player, boxPos)
+        }
+        thenIdle(10)
+        thenOnClient {
+            val menu = player?.containerMenu as? AutomaticRewardBoxMenu ?: error("Automatic reward box did not reopen")
+            check(menu.selectedTradeIndex == 0) { "Reopened automatic reward box did not restore its selected trade" }
+        }
+        thenScreenshot("automatic-reward-box-selection", showGui = true)
+        thenExecute {
+            val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
+            val menu = player.containerMenu as MerchantMenu
+            RewardShopTrades.replace(emptyMap())
+            menu.setSelectionHint(0)
+            val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
+            check(box.selectedTradeId == "replacement") { "Stale offer changed the selection" }
+            check(box.getItem(2).item === Items.DIAMOND) { "Reload removed stored output" }
+            check(!menu.quickMoveStack(player, 41).isEmpty) { "Output could not be shift-clicked into player inventory" }
+            check(box.getItem(2).isEmpty && player.inventory.contains(ItemStack(Items.DIAMOND))) { "Shift-click did not transfer stored output" }
+            RewardShopTradeRegistration().apply {
+                shop(automaticId.toString()) {
+                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
+                    it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
+                }
+                replaceTrades { true }
+            }
+            check(box.selectTrade("selected")) { "Restored trade could not be selected for Jade display" }
+            player.closeContainer()
+            player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.5, boxPos.z + 2.5, 180f, 45f)
+        }
+        thenIdle(100)
+        thenScreenshot("automatic-reward-box-jade", showGui = true)
     }
 }
 

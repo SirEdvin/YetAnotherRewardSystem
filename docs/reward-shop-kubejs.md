@@ -14,6 +14,11 @@ StartupEvents.registry('block', event => {
     .displayName('Veteran Rewards')
     .hardness(3)
     .textureAll('minecraft:block/cartography_table_top')
+
+  event.create('automated_rewards', 'yars:automatic_reward_box')
+    .displayName('Automated Rewards')
+    .hardness(3)
+    .textureAll('minecraft:block/copper_block')
 })
 ```
 
@@ -37,12 +42,29 @@ RewardShopEvents.trades(event => {
     shop.trade('daily_diamond')
       .simple(-1, Item.of('minecraft:gold_ingot', 4), Item.of('minecraft:diamond'))
   })
+
+  event.shop('kubejs:automated_rewards', shop => {
+    shop.trade('automated_diamond')
+      .simple(-1, Item.of('minecraft:emerald', 4), Item.of('minecraft:diamond'))
+  })
 })
 ```
 
 `simple` and `dynamic` take payment first and reward second. A positive whole number limits a stage; `-1` makes the final stage unlimited. `dynamic` receives the player's zero-based total purchases for that trade in that shop. Repeated `event.shop` declarations merge in script execution order.
 
 Trade-script changes apply on `/reload`. A successful reload replaces all shop registrations. An invalid shop target or duplicate trade ID within one shop rejects the entire reload and leaves the previous valid registrations active. A valid shop without trades still opens an empty merchant screen.
+
+## Automatic Reward Boxes
+
+`yars:automatic_reward_box` is also startup-script-only and uses its block ID as its shop ID. Using the block opens its trade list and six-slot internal storage together: select a trade on the left, supply payment through the first two storage slots, and recover stored results from the remaining four. The screen never performs a manual merchant trade.
+
+The first two inventory slots hold payment and the remaining four hold results. Item automation may insert only exact item-and-NBT matches for either cost of the currently selected trade. It may extract only from result slots. Whenever committed insertion completes the selected costs, the box performs as many trades as its payments and result capacity allow.
+
+Progress is local to each placed box and stored separately by full trade ID. Switching trades does not reset either trade's staged progress. A reload that removes or invalidates the selected trade stops processing but retains its ID, progress, and contents; restoring the same trade ID resumes it. Inputs that no longer match remain recoverable and are never deleted.
+
+When Jade is installed, looking at an automatic reward box shows its selected trade ID in the block tooltip.
+
+Adding or changing an automatic reward-box block requires a full restart. Its trades still update through `/reload`. YARS provides the block type and behavior only; the pack must create every block and provide its presentation or assets.
 
 ## Player History
 

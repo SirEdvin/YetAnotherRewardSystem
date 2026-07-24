@@ -61,6 +61,7 @@ dependencies {
     implementation(fg.deobf(libs.kubejs.forge))
     implementation(fg.deobf(libs.architectury.forge))
     implementation(fg.deobf(libs.rhino.forge))
+    implementation(fg.deobf(libs.jade.forge))
 
     libs.bundles.externalMods.forge.runtime.get().map { runtimeOnly(fg.deobf(it)) }
 }
@@ -96,6 +97,14 @@ minecraft {
                 }
             }
         }
+    }
+}
+
+// ponytail: Client GameTests need Minecraft's window, not Forge's flaky early splash.
+tasks.matching { it.name == "runClientGameTest" }.configureEach {
+    doFirst {
+        file("run/client-gametest/config").mkdirs()
+        file("run/client-gametest/config/fml.toml").writeText("earlyWindowControl = false\n")
     }
 }
 

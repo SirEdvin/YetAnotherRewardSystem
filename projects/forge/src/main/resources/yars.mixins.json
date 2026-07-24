@@ -8,8 +8,10 @@
   },
   "mixins": [
     "MerchantMenuMixin",
-    "MerchantResultSlotMixin"
+    "MerchantResultSlotMixin",
+    "SlotAccessor"
   ],
   "client": [
+    "client.MerchantScreenAccessor"
   ]
 }
