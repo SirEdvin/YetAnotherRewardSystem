@@ -3,42 +3,73 @@ package site.siredvin.yars.common.rewardshop
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.Tag
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.entity.player.Player
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.saveddata.SavedData
+import java.util.UUID
 
-object RewardShopTradeHistory {
-    const val ROOT_KEY = "yars"
-    const val SHOP_KEY = "reward_shop"
-    const val VERSION_KEY = "v2"
-    const val SHOPS_KEY = "shops"
-    const val TRADES_KEY = "trades"
+class RewardShopTradeHistory internal constructor(
+    private val counts: MutableMap<UUID, MutableMap<ResourceLocation, Int>> = mutableMapOf(),
+) : SavedData() {
+    companion object {
+        const val FILE_ID = "yars_reward_trade_history"
+        internal const val VERSION_KEY = "Version"
+        internal const val PLAYERS_KEY = "Players"
+        internal const val TRADES_KEY = "Trades"
+        private const val VERSION = 1
 
-    private lateinit var persistentData: (Player) -> CompoundTag
+        fun get(level: ServerLevel): RewardShopTradeHistory = level.server.overworld().dataStorage.computeIfAbsent(
+            ::load,
+            ::RewardShopTradeHistory,
+            FILE_ID,
+        )
 
-    fun configure(persistentData: (Player) -> CompoundTag) {
-        this.persistentData = persistentData
+        internal fun load(tag: CompoundTag): RewardShopTradeHistory {
+            if (tag.getTagType(VERSION_KEY) != Tag.TAG_INT || tag.getInt(VERSION_KEY) != VERSION) return RewardShopTradeHistory()
+            val counts = mutableMapOf<UUID, MutableMap<ResourceLocation, Int>>()
+            val players = tag.getCompound(PLAYERS_KEY)
+            players.allKeys.forEach { playerKey ->
+                val playerId = runCatching { UUID.fromString(playerKey) }.getOrNull()?.takeIf { it.toString() == playerKey } ?: return@forEach
+                if (players.getTagType(playerKey) != Tag.TAG_COMPOUND) return@forEach
+                val trades = players.getCompound(playerKey).getCompound(TRADES_KEY)
+                trades.allKeys.forEach tradeLoop@{ tradeKey ->
+                    val tradeId = ResourceLocation.tryParse(tradeKey)?.takeIf { it.toString() == tradeKey } ?: return@tradeLoop
+                    if (trades.getTagType(tradeKey) != Tag.TAG_INT) return@tradeLoop
+                    val value = trades.getInt(tradeKey)
+                    if (value >= 0) counts.getOrPut(playerId) { mutableMapOf() }[tradeId] = value
+                }
+            }
+            return RewardShopTradeHistory(counts)
+        }
     }
 
-    fun completed(player: Player, shopId: ResourceLocation, tradeId: String): Int = completed(persistentData(player), shopId, tradeId)
+    fun completed(playerId: UUID, tradeId: ResourceLocation): Int = counts[playerId]?.get(tradeId)?.coerceAtLeast(0) ?: 0
 
-    internal fun completed(data: CompoundTag, shopId: ResourceLocation, tradeId: String): Int {
-        val trades = trades(data, shopId)
-        if (trades.getTagType(tradeId) != Tag.TAG_INT) return 0
-        val value = trades.getInt(tradeId)
-        return value.coerceAtLeast(0)
+    fun increment(playerId: UUID, tradeId: ResourceLocation) {
+        val trades = counts.getOrPut(playerId) { mutableMapOf() }
+        trades[tradeId] = completed(playerId, tradeId).coerceAtMost(Int.MAX_VALUE - 1) + 1
+        setDirty()
     }
 
-    fun increment(player: Player, shopId: ResourceLocation, tradeId: String) = increment(persistentData(player), shopId, tradeId)
-
-    internal fun increment(data: CompoundTag, shopId: ResourceLocation, tradeId: String) {
-        val trades = trades(data, shopId)
-        trades.putInt(tradeId, completed(data, shopId, tradeId).coerceAtMost(Int.MAX_VALUE - 1) + 1)
+    override fun save(tag: CompoundTag): CompoundTag {
+        tag.putInt(VERSION_KEY, VERSION)
+        tag.put(
+            PLAYERS_KEY,
+            CompoundTag().also { players ->
+                counts.forEach { (playerId, playerTrades) ->
+                    players.put(
+                        playerId.toString(),
+                        CompoundTag().also { player ->
+                            player.put(
+                                TRADES_KEY,
+                                CompoundTag().also { trades ->
+                                    playerTrades.forEach { (tradeId, count) -> trades.putInt(tradeId.toString(), count.coerceAtLeast(0)) }
+                                },
+                            )
+                        },
+                    )
+                }
+            },
+        )
+        return tag
     }
-
-    private fun trades(data: CompoundTag, shopId: ResourceLocation): CompoundTag {
-        val root = data.getOrCreateCompound(ROOT_KEY)
-        return root.getOrCreateCompound(SHOP_KEY).getOrCreateCompound(VERSION_KEY).getOrCreateCompound(SHOPS_KEY)
-            .getOrCreateCompound(shopId.toString()).getOrCreateCompound(TRADES_KEY)
-    }
-
-    private fun CompoundTag.getOrCreateCompound(key: String): CompoundTag = if (contains(key, Tag.TAG_COMPOUND.toInt())) getCompound(key) else CompoundTag().also { put(key, it) }
 }

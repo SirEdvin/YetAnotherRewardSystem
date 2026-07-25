@@ -1,5 +1,7 @@
 package site.siredvin.yars.common.block
 
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.entity.player.Player
@@ -8,6 +10,7 @@ import net.minecraft.world.item.trading.Merchant
 import net.minecraft.world.item.trading.MerchantOffer
 import net.minecraft.world.item.trading.MerchantOffers
 import site.siredvin.yars.YarsCore
+import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
 import java.util.IdentityHashMap
 
@@ -16,7 +19,7 @@ class AutomaticRewardBoxMerchant(
     private val box: AutomaticRewardBoxBlockEntity,
 ) : Merchant {
     private var tradingPlayer: Player? = player
-    private val trades = IdentityHashMap<MerchantOffer, String>()
+    private val trades = IdentityHashMap<MerchantOffer, ResourceLocation>()
     private var offers = MerchantOffers()
 
     init {
@@ -42,7 +45,8 @@ class AutomaticRewardBoxMerchant(
 
     fun select(index: Int) {
         val offer = offers.getOrNull(index) ?: return
-        trades[offer]?.let(box::selectTrade)
+        val player = tradingPlayer ?: return
+        trades[offer]?.let { box.selectTrade(player, it) }
     }
 
     private fun rebuildOffers() {
@@ -51,7 +55,9 @@ class AutomaticRewardBoxMerchant(
         val selected = box.selectedTradeId
         RewardShopTrades.all(box.shopId).sortedBy { it.id != selected }.forEach { trade ->
             val resolved = try {
-                trade.resolve(box.completed(trade.id))
+                val ownerId = box.ownerPlayerUUID ?: return@forEach
+                val level = box.level as? ServerLevel ?: return@forEach
+                trade.resolve(RewardShopTradeHistory.get(level).completed(ownerId, trade.id))
             } catch (exception: RuntimeException) {
                 YarsCore.LOGGER.error("Skipping invalid automatic reward box trade ${trade.id}", exception)
                 null

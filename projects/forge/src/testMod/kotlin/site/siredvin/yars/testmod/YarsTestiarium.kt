@@ -40,6 +40,7 @@ object YarsTestiarium {
         blocks.register(bus)
         blockEntities.register(bus)
         Testiarium.init()
+        Testiarium.register(ForgeAutomaticRewardBoxCapabilityTests::class.java)
         MinecraftForge.EVENT_BUS.addListener { event: ServerStartedEvent -> Testiarium.onServerStarted(event.server) }
         MinecraftForge.EVENT_BUS.addListener { _: ServerStoppingEvent -> Testiarium.onServerStopped() }
         KotlinModLoadingContext.get().getKEventBus().addListener { event: RegisterGameTestsEvent ->

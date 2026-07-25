@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.state.BlockState
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlock
 import site.siredvin.yars.common.block.AutomaticRewardBoxBlockEntity
 import site.siredvin.yars.common.block.RewardShopBlock
+import site.siredvin.yars.fabric.registerAutomaticRewardBoxStorage
 
 class RewardShopBlockBuilder(id: ResourceLocation) : BlockBuilder(id) {
     override fun createObject() = RewardShopBlock(createProperties(), id)
@@ -23,5 +24,5 @@ class AutomaticRewardBoxBlockBuilder(id: ResourceLocation) : BlockBuilder(id) {
         blockEntityInfo = info
     }
 
-    override fun createObject() = AutomaticRewardBoxBlock(createProperties(), id) { info.entityType }
+    override fun createObject() = AutomaticRewardBoxBlock(createProperties(), id) { info.entityType }.also(::registerAutomaticRewardBoxStorage)
 }

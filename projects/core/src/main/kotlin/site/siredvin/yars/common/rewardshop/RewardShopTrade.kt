@@ -4,7 +4,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import site.siredvin.yars.common.block.RewardShopTarget
-import java.util.function.Consumer
 
 fun interface RewardShopStackResolver {
     fun resolve(purchaseIndex: Int): ItemStack
@@ -22,18 +21,17 @@ data class RewardShopTradeStage(
 )
 
 data class ResolvedRewardShopTrade(
-    val id: String,
+    val id: ResourceLocation,
     val result: ItemStack,
     val firstCost: ItemStack,
     val secondCost: ItemStack?,
 )
 
 class RewardShopTrade(
-    val id: String,
+    val id: ResourceLocation,
     val stages: List<RewardShopTradeStage>,
 ) {
     init {
-        require(id.matches(Regex("[a-z0-9_.-]+"))) { "Reward shop trade IDs must be lowercase paths: $id" }
         require(stages.isNotEmpty()) { "Reward shop trade $id needs at least one stage" }
         require(stages.dropLast(1).none { it.purchases == null }) { "Only the final stage of $id may be unlimited" }
         require(stages.all { it.purchases == null || it.purchases > 0 }) { "Trade stages must have positive purchase counts" }
@@ -81,26 +79,39 @@ object RewardShopTrades {
         fun onRewardShopTradesReplaced()
     }
 
+    private data class Snapshot(
+        val trades: Map<ResourceLocation, RewardShopTrade>,
+        val attachments: Map<ResourceLocation, List<ResourceLocation>>,
+    )
+
     @Volatile
-    private var trades: Map<ResourceLocation, Map<String, RewardShopTrade>> = emptyMap()
+    private var snapshot = Snapshot(emptyMap(), emptyMap())
     private val listeners = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Listener, Boolean>())
 
     @Synchronized
-    fun replace(newTrades: Map<ResourceLocation, List<RewardShopTrade>>) {
-        trades = newTrades.mapValues { (_, shopTrades) -> shopTrades.associateBy { it.id } }
+    fun replace(newTrades: Map<ResourceLocation, RewardShopTrade>, newAttachments: Map<ResourceLocation, List<ResourceLocation>>) {
+        snapshot = Snapshot(newTrades.toMap(), newAttachments.mapValues { it.value.toList() })
         synchronized(listeners) { listeners.toList() }.forEach(Listener::onRewardShopTradesReplaced)
     }
 
     fun addListener(listener: Listener) = synchronized(listeners) { listeners += listener }
     fun removeListener(listener: Listener) = synchronized(listeners) { listeners -= listener }
 
-    fun all(shopId: ResourceLocation): Collection<RewardShopTrade> = trades[shopId]?.values ?: emptyList()
+    fun all(boxId: ResourceLocation): List<RewardShopTrade> {
+        val current = snapshot
+        return current.attachments[boxId]?.mapNotNull(current.trades::get) ?: emptyList()
+    }
 
-    fun find(shopId: ResourceLocation, id: String): RewardShopTrade? = trades[shopId]?.get(id)
+    fun find(id: ResourceLocation): RewardShopTrade? = snapshot.trades[id]
+
+    fun find(boxId: ResourceLocation, id: ResourceLocation): RewardShopTrade? {
+        val current = snapshot
+        return current.trades[id]?.takeIf { id in (current.attachments[boxId] ?: emptyList()) }
+    }
 }
 
 class RewardShopTradeBuilder internal constructor(
-    private val id: String,
+    private val id: ResourceLocation,
 ) {
     private val stages = mutableListOf<RewardShopTradeStage>()
 
@@ -156,13 +167,13 @@ class RewardShopTradeBuilder internal constructor(
 }
 
 class RewardShopTradeRegistration {
-    private val shops = mutableListOf<Pair<ResourceLocation, MutableList<RewardShopTradeBuilder>>>()
+    private val builders = mutableListOf<RewardShopTradeBuilder>()
+    private val attachments = mutableListOf<Pair<ResourceLocation, ResourceLocation>>()
 
-    fun shop(id: String, callback: Consumer<RewardShopTradeShopRegistration>) {
-        val shopId = ResourceLocation.tryParse(id) ?: throw IllegalArgumentException("Invalid reward shop ID: $id")
-        val builders = mutableListOf<RewardShopTradeBuilder>()
-        shops += shopId to builders
-        callback.accept(RewardShopTradeShopRegistration(builders))
+    fun trade(id: String): RewardShopTradeBuilder = RewardShopTradeBuilder(parse(id, "trade")).also { builders += it }
+
+    fun attach(boxId: String, tradeId: String) {
+        attachments += parse(boxId, "reward box") to parse(tradeId, "trade")
     }
 
     @Suppress("DEPRECATION")
@@ -171,22 +182,21 @@ class RewardShopTradeRegistration {
             BuiltInRegistries.BLOCK.containsKey(it) && BuiltInRegistries.BLOCK.get(it) is RewardShopTarget
         },
     ) {
-        val built = linkedMapOf<ResourceLocation, MutableList<RewardShopTrade>>()
-        shops.forEach { (shopId, builders) ->
-            require(isRewardShop(shopId)) { "Reward shop target is missing or is not a reward shop block: $shopId" }
-            val trades = built.getOrPut(shopId) { mutableListOf() }
-            builders.forEach { builder ->
-                val trade = builder.build()
-                require(trades.none { it.id == trade.id }) { "Duplicate reward shop trade: $shopId / ${trade.id}" }
-                trades += trade
-            }
+        val built = linkedMapOf<ResourceLocation, RewardShopTrade>()
+        builders.forEach { builder ->
+            val trade = builder.build()
+            require(built.putIfAbsent(trade.id, trade) == null) { "Duplicate reward shop trade: ${trade.id}" }
         }
-        RewardShopTrades.replace(built)
+        val attached = linkedMapOf<ResourceLocation, MutableList<ResourceLocation>>()
+        attachments.forEach { (boxId, tradeId) ->
+            require(isRewardShop(boxId)) { "Reward shop target is missing or is not a reward shop block: $boxId" }
+            require(tradeId in built) { "Unknown reward shop trade: $tradeId" }
+            val boxTrades = attached.getOrPut(boxId) { mutableListOf() }
+            require(tradeId !in boxTrades) { "Duplicate reward shop attachment: $boxId / $tradeId" }
+            boxTrades += tradeId
+        }
+        RewardShopTrades.replace(built, attached)
     }
-}
 
-class RewardShopTradeShopRegistration internal constructor(
-    private val builders: MutableList<RewardShopTradeBuilder>,
-) {
-    fun trade(id: String): RewardShopTradeBuilder = RewardShopTradeBuilder(id).also { builders += it }
+    private fun parse(id: String, type: String): ResourceLocation = ResourceLocation.tryParse(id)?.takeIf { ':' in id } ?: throw IllegalArgumentException("Invalid $type ID: $id")
 }

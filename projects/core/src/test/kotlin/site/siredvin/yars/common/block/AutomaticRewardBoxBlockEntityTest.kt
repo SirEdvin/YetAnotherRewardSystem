@@ -9,15 +9,23 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.BlockEntityType
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import site.siredvin.yars.common.rewardshop.RewardShopTradeBuilder
+import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
+import java.util.UUID
 
 class AutomaticRewardBoxBlockEntityTest {
     companion object {
-        val SHOP_ID = ResourceLocation("yars_test", "automatic_reward_box")
+        val BOX_ID = ResourceLocation("yars_test:automatic_reward_box")
+        val SECOND_BOX_ID = ResourceLocation("yars_test:second_automatic_reward_box")
+        val OWNER = UUID.fromString("11111111-1111-1111-1111-111111111111")
+        val OTHER = UUID.fromString("22222222-2222-2222-2222-222222222222")
 
         @JvmStatic
         @BeforeAll
@@ -28,91 +36,119 @@ class AutomaticRewardBoxBlockEntityTest {
     }
 
     @Test
-    fun `executes staged trades atomically and retains per-trade progress`() {
-        val box = box()
-        register {
-            it.trade("staged")
-                .simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+    fun `offline boxes share stages and limits through owner history`() {
+        val history = RewardShopTradeHistory()
+        val first = box(BOX_ID)
+        val second = box(SECOND_BOX_ID)
+        val trade = ResourceLocation("test:staged")
+        register(trade, listOf(BOX_ID, SECOND_BOX_ID)) {
+            it.simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
                 .simple(1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
-            it.trade("other").simple(-1, ItemStack(Items.COAL), ItemStack(Items.REDSTONE))
         }
 
-        assertTrue(box.selectTrade("staged"))
-        box.setItem(0, ItemStack(Items.EMERALD, 2))
-        box.processTrades(true)
-        assertEquals(1, box.completed("staged"))
-        assertEquals(1, box.getItem(0).count)
-        assertEquals(1, box.getItem(2).count)
+        assertTrue(first.selectTrade(OWNER, trade, history))
+        first.setItem(0, ItemStack(Items.EMERALD))
+        first.processTrades(history)
+        assertEquals(1, history.completed(OWNER, trade))
+        assertEquals(Items.DIAMOND, first.getItem(2).item)
 
-        assertTrue(box.selectTrade("other"))
-        box.setItem(1, ItemStack(Items.COAL))
-        box.processTrades(true)
-        assertEquals(1, box.completed("other"))
-        assertTrue(box.selectTrade("staged"))
-        box.setItem(1, ItemStack(Items.IRON_INGOT))
-        box.processTrades(true)
-        assertEquals(2, box.completed("staged"))
-        assertEquals(Items.GOLD_INGOT, box.getItem(4).item)
+        assertTrue(second.selectTrade(OWNER, trade, history))
+        second.setItem(0, ItemStack(Items.IRON_INGOT, 2))
+        second.processTrades(history)
+        assertEquals(2, history.completed(OWNER, trade))
+        assertEquals(1, second.getItem(0).count)
+        assertEquals(Items.GOLD_INGOT, second.getItem(2).item)
+        assertNull(second.currentTrade(history))
     }
 
     @Test
-    fun `requires both equal costs and preserves payments when output is full`() {
+    fun `ownerless and non-owner selections stay inactive`() {
+        val history = RewardShopTradeHistory()
+        val trade = ResourceLocation("test:owned")
+        register(trade, listOf(BOX_ID)) { it.simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND)) }
+        val ownerless = box(BOX_ID, null)
+        ownerless.setItem(0, ItemStack(Items.EMERALD))
+
+        assertFalse(ownerless.selectTrade(OWNER, trade, history))
+        ownerless.processTrades(history)
+        assertEquals(1, ownerless.getItem(0).count)
+
+        val owned = box()
+        assertFalse(owned.selectTrade(OTHER, trade, history))
+        assertTrue(owned.selectTrade(OWNER, trade, history))
+    }
+
+    @Test
+    fun `requires complete costs and output capacity before changing inventory or history`() {
+        val history = RewardShopTradeHistory()
+        val trade = ResourceLocation("test:double")
         val box = box()
-        register { it.trade("double").simple(-1, ItemStack(Items.EMERALD, 2), ItemStack(Items.DIAMOND), ItemStack(Items.EMERALD, 3)) }
-        assertTrue(box.selectTrade("double"))
+        register(trade, listOf(BOX_ID)) {
+            it.simple(-1, ItemStack(Items.EMERALD, 2), ItemStack(Items.DIAMOND), ItemStack(Items.EMERALD, 3))
+        }
+        assertTrue(box.selectTrade(OWNER, trade, history))
         box.setItem(0, ItemStack(Items.EMERALD, 4))
-        box.processTrades(true)
+        box.processTrades(history)
         assertEquals(4, box.getItem(0).count)
         box.setItem(1, ItemStack(Items.EMERALD))
         for (slot in 2 until box.containerSize) box.setItem(slot, ItemStack(Items.STONE, 64))
-        box.processTrades(true)
+        box.processTrades(history)
+
         assertEquals(5, box.getItem(0).count + box.getItem(1).count)
-        assertEquals(0, box.completed("double"))
+        assertEquals(0, history.completed(OWNER, trade))
     }
 
     @Test
-    fun `persists inventory selection and direct-key counts while ignoring malformed counts`() {
+    fun `persists owner inventory and namespaced selection without local history`() {
+        val history = RewardShopTradeHistory()
+        val trade = ResourceLocation("test:trade.with-punctuation")
         val original = box()
-        register { it.trade("trade.with-punctuation").simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND)) }
-        assertTrue(original.selectTrade("trade.with-punctuation"))
+        register(trade, listOf(BOX_ID)) { it.simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND)) }
+        assertTrue(original.selectTrade(OWNER, trade, history))
         original.setItem(0, ItemStack(Items.EMERALD))
-        original.processTrades(true)
-        val saved = original.saveWithFullMetadata()
-        saved.getCompound("Completed").putString("bad", "not-an-int")
+        original.processTrades(history)
 
-        val loaded = box()
+        val saved = original.saveWithFullMetadata()
+        val loaded = box(BOX_ID, null)
         loaded.load(saved)
-        assertEquals("trade.with-punctuation", loaded.selectedTradeId)
-        assertEquals(1, loaded.completed("trade.with-punctuation"))
-        assertEquals(0, loaded.completed("bad"))
+
+        assertEquals(OWNER, loaded.ownerPlayerUUID)
+        assertEquals(trade, loaded.selectedTradeId)
+        assertFalse(saved.contains("Completed"))
         assertEquals(Items.DIAMOND, loaded.getItem(2).item)
+        assertEquals(1, history.completed(OWNER, trade))
     }
 
     @Test
-    fun `retains state across trade removal and rejects invalid dynamic trades`() {
+    fun `retains selection and inventory across detach and invalid resolution`() {
+        val history = RewardShopTradeHistory()
+        val trade = ResourceLocation("test:reload")
         val box = box()
-        register { it.trade("reload").simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND)) }
-        assertTrue(box.selectTrade("reload"))
-        RewardShopTrades.replace(emptyMap())
+        register(trade, listOf(BOX_ID)) { it.simple(-1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND)) }
+        assertTrue(box.selectTrade(OWNER, trade, history))
+        RewardShopTrades.replace(mapOf(trade to RewardShopTrades.find(trade)!!), emptyMap())
         box.setItem(0, ItemStack(Items.EMERALD))
-        box.processTrades(true)
+        box.processTrades(history)
         assertEquals(1, box.getItem(0).count)
-        assertEquals("reload", box.selectedTradeId)
+        assertEquals(trade, box.selectedTradeId)
 
         var broken = false
-        register { it.trade("reload").dynamic(-1, { if (broken) error("broken") else ItemStack(Items.EMERALD) }, { ItemStack(Items.DIAMOND) }) }
+        register(trade, listOf(BOX_ID)) {
+            it.dynamic(-1, { if (broken) error("broken") else ItemStack(Items.EMERALD) }, { ItemStack(Items.DIAMOND) })
+        }
         broken = true
-        box.processTrades(true)
+        box.processTrades(history)
         assertEquals(1, box.getItem(0).count)
-        assertEquals(0, box.completed("reload"))
+        assertEquals(0, history.completed(OWNER, trade))
     }
 
-    private fun register(callback: (site.siredvin.yars.common.rewardshop.RewardShopTradeShopRegistration) -> Unit) {
+    private fun register(tradeId: ResourceLocation, boxes: List<ResourceLocation>, callback: (RewardShopTradeBuilder) -> Unit) {
         RewardShopTradeRegistration().apply {
-            shop(SHOP_ID.toString(), callback)
+            callback(trade(tradeId.toString()))
+            boxes.forEach { attach(it.toString(), tradeId.toString()) }
             replaceTrades { true }
         }
     }
 
-    private fun box(): AutomaticRewardBoxBlockEntity = AutomaticRewardBoxBlockEntity(BlockEntityType.CHEST, BlockPos.ZERO, Blocks.CHEST.defaultBlockState(), SHOP_ID)
+    private fun box(id: ResourceLocation = BOX_ID, owner: UUID? = OWNER): AutomaticRewardBoxBlockEntity = AutomaticRewardBoxBlockEntity(BlockEntityType.CHEST, BlockPos.ZERO, Blocks.CHEST.defaultBlockState(), id).also { it.ownerPlayerUUID = owner }
 }

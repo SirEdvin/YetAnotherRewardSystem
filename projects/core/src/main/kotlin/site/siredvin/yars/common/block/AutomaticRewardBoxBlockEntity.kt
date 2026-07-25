@@ -4,9 +4,9 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.NonNullList
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.Tag
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.WorldlyContainer
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
@@ -16,9 +16,12 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
+import site.siredvin.broccolium.modules.base.api.IOwnedBlockEntity
 import site.siredvin.yars.YarsCore
 import site.siredvin.yars.common.rewardshop.ResolvedRewardShopTrade
+import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
+import java.util.UUID
 
 class AutomaticRewardBoxBlockEntity(
     type: BlockEntityType<*>,
@@ -27,21 +30,27 @@ class AutomaticRewardBoxBlockEntity(
     val shopId: ResourceLocation,
 ) : BaseContainerBlockEntity(type, pos, state),
     WorldlyContainer,
-    RewardShopTrades.Listener {
+    RewardShopTrades.Listener,
+    IOwnedBlockEntity {
     companion object {
         const val PAYMENT_SLOTS = 2
         const val SIZE = 6
         private const val ITEMS_KEY = "Items"
         private const val SELECTED_TRADE_KEY = "SelectedTrade"
-        private const val COMPLETED_KEY = "Completed"
+        private const val OWNER_KEY = "Owner"
 
         private fun sameItem(left: ItemStack, right: ItemStack): Boolean = ItemStack.isSameItemSameTags(left, right)
     }
 
     private var items = NonNullList.withSize(SIZE, ItemStack.EMPTY)
-    private val completed = mutableMapOf<String, Int>()
     private var processing = false
-    var selectedTradeId: String? = null
+    override var ownerPlayerUUID: UUID? = null
+    override var player: Player?
+        get() = ownerPlayerUUID?.let { level?.getPlayerByUUID(it) }
+        set(value) {
+            ownerPlayerUUID = value?.uuid
+        }
+    var selectedTradeId: ResourceLocation? = null
         private set
 
     init {
@@ -59,6 +68,10 @@ class AutomaticRewardBoxBlockEntity(
         if (stack.count > maxStackSize) stack.count = maxStackSize
         setChanged()
     }
+
+    fun setItemForTransaction(slot: Int, stack: ItemStack) {
+        items[slot] = stack
+    }
     override fun stillValid(player: Player): Boolean = canOpen(player)
     override fun clearContent() {
         items.clear()
@@ -72,7 +85,9 @@ class AutomaticRewardBoxBlockEntity(
 
     override fun getDefaultName(): Component = blockState.block.name
     override fun createMenu(id: Int, inventory: Inventory): AbstractContainerMenu = AutomaticRewardBoxMenu(id, inventory, AutomaticRewardBoxMerchant(inventory.player, this), this)
-    override fun canOpen(player: Player): Boolean = !isRemoved && player.distanceToSqr(worldPosition.x + 0.5, worldPosition.y + 0.5, worldPosition.z + 0.5) <= 64.0
+    override fun canOpen(player: Player): Boolean = ownerPlayerUUID == player.uuid &&
+        !isRemoved &&
+        player.distanceToSqr(worldPosition.x + 0.5, worldPosition.y + 0.5, worldPosition.z + 0.5) <= 64.0
     override fun getSlotsForFace(side: Direction): IntArray = IntArray(SIZE) { it }
     override fun canPlaceItem(slot: Int, stack: ItemStack): Boolean = slot < PAYMENT_SLOTS && acceptsPayment(stack)
     override fun canPlaceItemThroughFace(slot: Int, stack: ItemStack, direction: Direction?): Boolean = canPlaceItem(slot, stack)
@@ -82,19 +97,15 @@ class AutomaticRewardBoxBlockEntity(
         super.load(tag)
         items = NonNullList.withSize(SIZE, ItemStack.EMPTY)
         net.minecraft.world.ContainerHelper.loadAllItems(tag.getCompound(ITEMS_KEY), items)
-        selectedTradeId = tag.getString(SELECTED_TRADE_KEY).takeIf(String::isNotEmpty)
-        completed.clear()
-        val counts = tag.getCompound(COMPLETED_KEY)
-        counts.allKeys.forEach { key ->
-            if (counts.getTagType(key) == Tag.TAG_INT) completed[key] = counts.getInt(key).coerceAtLeast(0)
-        }
+        selectedTradeId = ResourceLocation.tryParse(tag.getString(SELECTED_TRADE_KEY))
+        ownerPlayerUUID = if (tag.hasUUID(OWNER_KEY)) tag.getUUID(OWNER_KEY) else null
     }
 
     override fun saveAdditional(tag: CompoundTag) {
         super.saveAdditional(tag)
         tag.put(ITEMS_KEY, CompoundTag().also { net.minecraft.world.ContainerHelper.saveAllItems(it, items) })
-        selectedTradeId?.let { tag.putString(SELECTED_TRADE_KEY, it) }
-        tag.put(COMPLETED_KEY, CompoundTag().also { counts -> completed.forEach(counts::putInt) })
+        selectedTradeId?.let { tag.putString(SELECTED_TRADE_KEY, it.toString()) }
+        ownerPlayerUUID?.let { tag.putUUID(OWNER_KEY, it) }
     }
 
     override fun setLevel(level: Level) {
@@ -109,41 +120,30 @@ class AutomaticRewardBoxBlockEntity(
 
     override fun onRewardShopTradesReplaced() = processTrades()
 
-    fun completed(tradeId: String): Int = completed[tradeId]?.coerceAtLeast(0) ?: 0
+    fun selectTrade(player: Player, tradeId: ResourceLocation): Boolean {
+        if (!canOpen(player)) return false
+        val history = history() ?: return false
+        return selectTrade(player.uuid, tradeId, history)
+    }
 
-    fun selectTrade(tradeId: String): Boolean {
+    internal fun selectTrade(playerId: UUID, tradeId: ResourceLocation, history: RewardShopTradeHistory): Boolean {
+        if (ownerPlayerUUID != playerId) return false
         val trade = RewardShopTrades.find(shopId, tradeId) ?: return false
-        if (runCatching { trade.resolve(completed(tradeId)) }.getOrNull() == null) return false
+        if (runCatching { trade.resolve(history.completed(playerId, tradeId)) }.getOrNull() == null) return false
         selectedTradeId = tradeId
         setChanged()
-        processTrades()
         return true
     }
 
     fun currentTrade(): ResolvedRewardShopTrade? {
-        val id = selectedTradeId ?: return null
-        return runCatching { RewardShopTrades.find(shopId, id)?.resolve(completed(id)) }.getOrNull()
+        val history = history() ?: return null
+        return currentTrade(history)
     }
 
-    fun insertPayment(stack: ItemStack, simulate: Boolean): ItemStack {
-        if (!acceptsPayment(stack)) return stack
-        val remainder = stack.copy()
-        for (slot in 0 until PAYMENT_SLOTS) {
-            val stored = items[slot]
-            if (!stored.isEmpty && !sameItem(stored, remainder)) continue
-            val moved = minOf(remainder.count, remainder.maxStackSize - stored.count)
-            if (moved <= 0) continue
-            if (!simulate) {
-                if (stored.isEmpty) items[slot] = remainder.copyWithCount(moved) else stored.grow(moved)
-            }
-            remainder.shrink(moved)
-            if (remainder.isEmpty) break
-        }
-        if (!simulate && remainder.count != stack.count) {
-            setChanged()
-            processTrades()
-        }
-        return remainder
+    internal fun currentTrade(history: RewardShopTradeHistory): ResolvedRewardShopTrade? {
+        val ownerId = ownerPlayerUUID ?: return null
+        val id = selectedTradeId ?: return null
+        return runCatching { RewardShopTrades.find(shopId, id)?.resolve(history.completed(ownerId, id)) }.getOrNull()
     }
 
     private fun acceptsPayment(stack: ItemStack): Boolean = !stack.isEmpty &&
@@ -163,25 +163,33 @@ class AutomaticRewardBoxBlockEntity(
     }
 
     internal fun processTrades(serverSide: Boolean = level?.isClientSide == false) {
+        val history = history() ?: return
+        processTrades(history, serverSide)
+    }
+
+    internal fun processTrades(history: RewardShopTradeHistory, serverSide: Boolean = true) {
         if (processing || !serverSide) return
         processing = true
         try {
-            while (performTrade()) Unit
+            while (performTrade(history)) Unit
         } finally {
             processing = false
         }
     }
 
-    private fun performTrade(): Boolean {
-        val resolved = currentTrade() ?: return false
+    private fun performTrade(history: RewardShopTradeHistory): Boolean {
+        val ownerId = ownerPlayerUUID ?: return false
+        val resolved = currentTrade(history) ?: return false
         if (!hasCosts(resolved) || !canFitOutput(resolved.result)) return false
         consume(resolved.firstCost)
         resolved.secondCost?.let(::consume)
         insertOutput(resolved.result)
-        completed[resolved.id] = completed(resolved.id).coerceAtMost(Int.MAX_VALUE - 1) + 1
+        history.increment(ownerId, resolved.id)
         setChanged()
         return true
     }
+
+    private fun history(): RewardShopTradeHistory? = (level as? ServerLevel)?.let(RewardShopTradeHistory::get)
 
     private fun hasCosts(trade: ResolvedRewardShopTrade): Boolean {
         val costs = listOfNotNull(trade.firstCost, trade.secondCost)

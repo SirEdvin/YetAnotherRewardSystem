@@ -5,7 +5,6 @@ import net.minecraft.core.Direction
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.gametest.framework.GameTestAssertException
 import net.minecraft.gametest.framework.GameTestHelper
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.inventory.MenuType
@@ -27,6 +26,7 @@ import site.siredvin.yars.common.rewardshop.RewardShopTradeRegistration
 import site.siredvin.yars.common.rewardshop.RewardShopTrades
 import site.siredvin.yars.testmod.client.thenOnClient
 import site.siredvin.yars.testmod.client.thenScreenshot
+import java.util.UUID
 
 object RewardShopClientTests {
     private val shopId = ResourceLocation("yars_test", "reward_shop")
@@ -71,13 +71,13 @@ object RewardShopClientTests {
     @TestGroup(TestTags.CLIENT)
     fun rewardShopLifecycle(helper: GameTestHelper) = helper.sequence {
         lateinit var shopPos: BlockPos
-        lateinit var savedPlayer: CompoundTag
+        val cappedId = ResourceLocation("yars_test", "capped_${UUID.randomUUID().toString().replace("-", "")}")
+        val staleId = ResourceLocation("yars_test", "stale_${UUID.randomUUID().toString().replace("-", "")}")
         thenExecute {
             shopPos = helper.absolutePos(BlockPos(1, 1, 1))
             helper.level.setBlockAndUpdate(shopPos, BuiltInRegistries.BLOCK.get(shopId).defaultBlockState())
-            RewardShopTrades.replace(emptyMap())
+            RewardShopTrades.replace(emptyMap(), emptyMap())
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
-            persistentData(player).remove(RewardShopTradeHistory.ROOT_KEY)
             player.connection.teleport(shopPos.x + 0.5, shopPos.y + 1.0, shopPos.z + 2.5, 180f, 0f)
             useShopBlock(player, shopPos)
         }
@@ -91,11 +91,10 @@ object RewardShopClientTests {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             player.closeContainer()
             RewardShopTradeRegistration().apply {
-                shop(shopId.toString()) {
-                    it.trade("capped")
-                        .simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
-                        .simple(1, ItemStack(Items.IRON_INGOT), ItemStack(Items.DIAMOND))
-                }
+                trade(cappedId.toString())
+                    .simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+                    .simple(1, ItemStack(Items.IRON_INGOT), ItemStack(Items.DIAMOND))
+                attach(shopId.toString(), cappedId.toString())
                 replaceTrades { true }
             }
             useShopBlock(player, shopPos)
@@ -108,19 +107,15 @@ object RewardShopClientTests {
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             completeTrade(player.containerMenu as MerchantMenu, player, ItemStack(Items.EMERALD))
-            check(RewardShopTradeHistory.completed(player, shopId, "capped") == 1) { "Purchase count did not increment" }
+            val history = RewardShopTradeHistory.get(helper.level)
+            check(history.completed(player.uuid, cappedId) == 1) { "Purchase count did not increment" }
             check((player.containerMenu as MerchantMenu).offers.single().costA.item === Items.IRON_INGOT) {
                 "Offers did not refresh to the second stage"
             }
-            savedPlayer = player.saveWithoutId(CompoundTag()).copy()
-            persistentData(player).remove(RewardShopTradeHistory.ROOT_KEY)
-            check(RewardShopTradeHistory.completed(player, shopId, "capped") == 0) { "Test could not clear live history" }
-            player.load(savedPlayer)
-            check(RewardShopTradeHistory.completed(player, shopId, "capped") == 1) { "Purchase count did not survive player reload" }
             player.closeContainer()
             useShopBlock(player, shopPos)
             completeTrade(player.containerMenu as MerchantMenu, player, ItemStack(Items.IRON_INGOT))
-            check(RewardShopTradeHistory.completed(player, shopId, "capped") == 2) { "Second purchase count was not recorded" }
+            check(history.completed(player.uuid, cappedId) == 2) { "Second purchase count was not recorded" }
             check((player.containerMenu as MerchantMenu).offers.isEmpty()) { "Capped trade remained available" }
         }
         thenExecute {
@@ -128,18 +123,19 @@ object RewardShopClientTests {
             player.closeContainer()
             player.inventory.clearContent()
             RewardShopTradeRegistration().apply {
-                shop(shopId.toString()) { it.trade("stale").simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND)) }
+                trade(staleId.toString()).simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+                attach(shopId.toString(), staleId.toString())
                 replaceTrades { true }
             }
             useShopBlock(player, shopPos)
-            RewardShopTradeHistory.increment(player, shopId, "stale")
+            RewardShopTradeHistory.get(helper.level).increment(player.uuid, staleId)
             val menu = player.containerMenu as MerchantMenu
             menu.getSlot(0).set(ItemStack(Items.EMERALD))
             val result = menu.quickMoveStack(player, 2)
             check(result.isEmpty) { "Stale offer returned a result" }
             check(player.inventory.countItem(Items.DIAMOND) == 0) { "Stale offer granted its result" }
             check(menu.getSlot(0).item.count == 1) { "Stale offer consumed its payment" }
-            check(RewardShopTradeHistory.completed(player, shopId, "stale") == 1) { "Stale offer changed purchase history" }
+            check(RewardShopTradeHistory.get(helper.level).completed(player.uuid, staleId) == 1) { "Stale offer changed purchase history" }
         }
     }
 
@@ -148,13 +144,23 @@ object RewardShopClientTests {
     @TestGroup(TestTags.CLIENT)
     fun automaticRewardBoxSelectionAndExecution(helper: GameTestHelper) = helper.sequence {
         val automaticId = ResourceLocation("yars_test", "automatic_reward_box")
+        val selectedId = ResourceLocation("yars_test", "selected_${UUID.randomUUID().toString().replace("-", "")}")
+        val replacementId = ResourceLocation("yars_test", "replacement_${UUID.randomUUID().toString().replace("-", "")}")
+        val offlineId = ResourceLocation("yars_test", "offline_${UUID.randomUUID().toString().replace("-", "")}")
+        val offlineOwner = UUID.randomUUID()
         lateinit var boxPos: BlockPos
+        lateinit var interactivePos: BlockPos
         thenExecute {
             boxPos = helper.absolutePos(BlockPos(1, 1, 1))
+            interactivePos = helper.absolutePos(BlockPos(3, 1, 1))
             helper.level.setBlockAndUpdate(boxPos, BuiltInRegistries.BLOCK.get(automaticId).defaultBlockState())
-            RewardShopTrades.replace(emptyMap())
+            helper.level.setBlockAndUpdate(interactivePos, BuiltInRegistries.BLOCK.get(shopId).defaultBlockState())
+            RewardShopTrades.replace(emptyMap(), emptyMap())
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.0, boxPos.z + 2.5, 180f, 0f)
+            useShopBlock(player, boxPos)
+            check(player.containerMenu !is AutomaticRewardBoxMenu) { "Ownerless automatic reward box opened" }
+            (helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity).player = player
             useShopBlock(player, boxPos)
         }
         thenIdle(10)
@@ -168,12 +174,19 @@ object RewardShopClientTests {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             player.closeContainer()
             RewardShopTradeRegistration().apply {
-                shop(automaticId.toString()) {
-                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
-                    it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
-                }
+                trade(selectedId.toString())
+                    .simple(1, ItemStack(Items.EMERALD), ItemStack(Items.DIAMOND))
+                    .simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
+                trade(replacementId.toString()).simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
+                attach(shopId.toString(), selectedId.toString())
+                attach(automaticId.toString(), selectedId.toString())
+                attach(automaticId.toString(), replacementId.toString())
                 replaceTrades { true }
             }
+            useShopBlock(player, interactivePos)
+            completeTrade(player.containerMenu as MerchantMenu, player, ItemStack(Items.EMERALD))
+            check(RewardShopTradeHistory.get(helper.level).completed(player.uuid, selectedId) == 1) { "Interactive trade did not advance shared history" }
+            player.closeContainer()
             player.inventory.setItem(9, ItemStack(Items.EMERALD, 4))
             useShopBlock(player, boxPos)
         }
@@ -185,7 +198,7 @@ object RewardShopClientTests {
         }
         thenWaitUntil {
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
-            if (box.selectedTradeId != "selected") throw GameTestAssertException("Offer selection has not reached the server")
+            if (box.selectedTradeId != selectedId) throw GameTestAssertException("Offer selection has not reached the server")
         }
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
@@ -195,7 +208,7 @@ object RewardShopClientTests {
             check(!menu.quickMoveStack(player, 3).isEmpty) { "Payment could not be shift-clicked into box storage" }
             check(box.getItem(0).isEmpty && box.getItem(2).item === Items.DIAMOND) { "Selected trade did not execute into output storage" }
             menu.setSelectionHint(1)
-            check(box.selectedTradeId == "replacement") { "Replacement selection was not stored" }
+            check(box.selectedTradeId == replacementId) { "Replacement selection was not stored" }
             player.closeContainer()
             useShopBlock(player, boxPos)
         }
@@ -208,21 +221,28 @@ object RewardShopClientTests {
         thenExecute {
             val player = helper.level.randomPlayer ?: throw GameTestAssertException("Player does not exist")
             val menu = player.containerMenu as MerchantMenu
-            RewardShopTrades.replace(emptyMap())
+            RewardShopTrades.replace(emptyMap(), emptyMap())
             menu.setSelectionHint(0)
             val box = helper.level.getBlockEntity(boxPos) as AutomaticRewardBoxBlockEntity
-            check(box.selectedTradeId == "replacement") { "Stale offer changed the selection" }
+            check(box.selectedTradeId == replacementId) { "Stale offer changed the selection" }
             check(box.getItem(2).item === Items.DIAMOND) { "Reload removed stored output" }
             check(!menu.quickMoveStack(player, 41).isEmpty) { "Output could not be shift-clicked into player inventory" }
             check(box.getItem(2).isEmpty && player.inventory.contains(ItemStack(Items.DIAMOND))) { "Shift-click did not transfer stored output" }
             RewardShopTradeRegistration().apply {
-                shop(automaticId.toString()) {
-                    it.trade("selected").simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
-                    it.trade("replacement").simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
-                }
+                trade(selectedId.toString()).simple(-1, ItemStack(Items.EMERALD, 4), ItemStack(Items.DIAMOND))
+                trade(replacementId.toString()).simple(-1, ItemStack(Items.IRON_INGOT), ItemStack(Items.GOLD_INGOT))
+                trade(offlineId.toString()).simple(-1, ItemStack(Items.COAL), ItemStack(Items.REDSTONE))
+                attach(automaticId.toString(), selectedId.toString())
+                attach(automaticId.toString(), replacementId.toString())
+                attach(automaticId.toString(), offlineId.toString())
                 replaceTrades { true }
             }
-            check(box.selectTrade("selected")) { "Restored trade could not be selected for Jade display" }
+            check(box.selectTrade(player, selectedId)) { "Restored trade could not be selected for Jade display" }
+            check(box.selectTrade(player, offlineId)) { "Offline test trade could not be selected" }
+            box.ownerPlayerUUID = offlineOwner
+            box.setItem(0, ItemStack(Items.COAL))
+            check(RewardShopTradeHistory.get(helper.level).completed(offlineOwner, offlineId) == 1) { "Offline-owner trade did not execute" }
+            check(box.getItem(2).item === Items.REDSTONE) { "Offline-owner result was not stored" }
             player.closeContainer()
             player.connection.teleport(boxPos.x + 0.5, boxPos.y + 1.5, boxPos.z + 2.5, 180f, 45f)
         }
@@ -255,5 +275,3 @@ private fun completeTrade(menu: MerchantMenu, player: net.minecraft.world.entity
     check(!menu.getSlot(2).item.isEmpty) { "Payment did not match an offer" }
     check(!menu.quickMoveStack(player, 2).isEmpty) { "Trade did not produce its result" }
 }
-
-private fun persistentData(player: net.minecraft.world.entity.player.Player): CompoundTag = player.javaClass.getMethod("kjs\$getPersistentData").invoke(player) as CompoundTag

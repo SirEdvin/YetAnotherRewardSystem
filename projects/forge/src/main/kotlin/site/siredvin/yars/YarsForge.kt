@@ -1,6 +1,5 @@
 package site.siredvin.yars
 
-import dev.latvian.mods.kubejs.core.EntityKJS
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.MenuType
@@ -17,7 +16,6 @@ import site.siredvin.broccolium.ForgeBroccolium
 import site.siredvin.yars.common.block.AutomaticRewardBoxMenu
 import site.siredvin.yars.common.block.AutomaticRewardBoxMenus
 import site.siredvin.yars.common.configuration.ConfigHolder
-import site.siredvin.yars.common.rewardshop.RewardShopTradeHistory
 import site.siredvin.yars.forge.ForgeModRecipeIngredients
 import site.siredvin.yars.forge.YarsForgePlatform
 import thedarkcolour.kotlinforforge.forge.LOADING_CONTEXT
@@ -40,7 +38,6 @@ object YarsForge {
         ForgeBroccolium.sayHi()
         LOADING_CONTEXT.registerConfig(ModConfig.Type.COMMON, ConfigHolder.commonSpec, "${YarsCore.MOD_ID}.toml")
         YarsCore.configure(YarsForgePlatform, ForgeModRecipeIngredients)
-        RewardShopTradeHistory.configure { (it as EntityKJS).`kjs$getPersistentData`() }
         val eventBus = MOD_CONTEXT.getKEventBus()
         eventBus.addListener(this::commonSetup)
         blocksRegistry.register(eventBus)
