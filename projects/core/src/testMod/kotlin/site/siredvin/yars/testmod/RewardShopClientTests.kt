@@ -255,6 +255,7 @@ object YarsTests {
     @JvmStatic
     fun register() {
         site.siredvin.testiarium.Testiarium.register(RewardShopClientTests::class.java)
+        site.siredvin.testiarium.Testiarium.register(DebugShopClientTests::class.java)
     }
 }
 

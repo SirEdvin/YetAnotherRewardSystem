@@ -21,6 +21,13 @@ githubShaking {
     shake()
 }
 
+githubRelease {
+    tagName.set(providers.gradleProperty("modVersion"))
+    releaseName.set(providers.gradleProperty("modVersion"))
+    targetCommitish.set(providers.gradleProperty("releaseCommit").orElse("1.20"))
+    draft.set(false)
+}
+
 repositories {
     maven("https://mvn.siredvin.site/minecraft") {
         name = "SirEdvin's Maven proxy"

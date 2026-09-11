@@ -1,3 +1,5 @@
 {
-  "config.jade.plugin_yars.automatic_reward_box": "Automatic Reward Box Trade"
+  "config.jade.plugin_yars.automatic_reward_box": "Automatic Reward Box Trade",
+  "block.yars.debug_reward_shop": "Debug Reward Shop",
+  "block.yars.debug_automatic_reward_box": "Debug Automatic Reward Box"
 }

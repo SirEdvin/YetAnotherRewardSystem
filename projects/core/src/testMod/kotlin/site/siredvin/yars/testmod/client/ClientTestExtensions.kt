@@ -45,9 +45,15 @@ fun GameTestSequence.thenScreenshot(name: String, showGui: Boolean = false): Gam
     thenIdle(2)
     thenOnClient {
         val directory = File(System.getProperty("testiarium.screenshots", gameDirectory.absolutePath))
+        check(directory.mkdirs() || directory.isDirectory) { "Cannot create screenshot directory: $directory" }
+        File(directory, "screenshots/$name.png").delete()
         Screenshot.grab(directory, "$name.png", mainRenderTarget) { captured.set(true) }
     }
     thenWaitUntil { if (!captured.get()) throw GameTestAssertException("Screenshot was not captured") }
+    thenOnClient {
+        val directory = File(System.getProperty("testiarium.screenshots", gameDirectory.absolutePath))
+        check(File(directory, "screenshots/$name.png").isFile) { "Screenshot write failed: $name" }
+    }
     thenOnClient { options.hideGui = false }
     return this
 }

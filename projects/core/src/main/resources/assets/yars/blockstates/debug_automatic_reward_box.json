@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "yars:block/debug_automatic_reward_box"
+    }
+  }
+}
