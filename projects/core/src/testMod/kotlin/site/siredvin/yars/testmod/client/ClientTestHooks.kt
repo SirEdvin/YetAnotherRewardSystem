@@ -40,6 +40,7 @@ object ClientTestHooks {
     private var tracker: MultipleTestTracker? = null
     private var startupDelay = STARTUP_DELAY
     private var finished = false
+    private var reopenedFrom: MinecraftServer? = null
 
     @JvmStatic
     fun onOpenScreen(screen: Screen): Boolean {
@@ -74,7 +75,24 @@ object ClientTestHooks {
 
     @JvmStatic
     fun onServerTick(server: MinecraftServer) {
-        if (!enabled || finished) return
+        if (!enabled) return
+        if (reopenedFrom != null && server !== reopenedFrom && server.overworld().players().isNotEmpty()) {
+            if (startupDelay-- > 0) return
+            val trades = site.siredvin.yars.common.rewardshop.RewardShopTrades
+            val valid = trades.all(site.siredvin.yars.common.block.DebugShops.MANUAL_ID).size == 9 &&
+                trades.all(site.siredvin.yars.common.block.DebugShops.AUTOMATIC_ID).size == 9 &&
+                trades.find(net.minecraft.resources.ResourceLocation("yars_test", "previous_world_only")) == null
+            log.info("YARS_SECOND_INTEGRATED_WORLD {}", if (valid) "PASS" else "FAIL")
+            reopenedFrom = null
+            Minecraft.getInstance().execute {
+                Minecraft.getInstance().level?.disconnect()
+                Minecraft.getInstance().clearLevel()
+                Minecraft.getInstance().stop()
+                exitProcess(if (valid) 0 else 2)
+            }
+            return
+        }
+        if (finished) return
         val tests = tracker ?: startTests(server) ?: return
         if (server.overworld().gameTime % 20L == 0L) log.info(tests.progressBar)
         if (!tests.isDone) return
@@ -84,6 +102,21 @@ object ClientTestHooks {
             tests.totalCount == 0 -> 1
             tests.hasFailedRequired() -> 2
             else -> 0
+        }
+        if (exitCode == 0) {
+            site.siredvin.yars.common.rewardshop.DebugShopTrades.registration().apply {
+                trade("yars_test:previous_world_only").simple(-1, net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.COAL), net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND))
+                attach(site.siredvin.yars.common.block.DebugShops.MANUAL_ID.toString(), "yars_test:previous_world_only")
+                replaceTrades()
+            }
+            reopenedFrom = server
+            startupDelay = STARTUP_DELAY
+            Minecraft.getInstance().execute {
+                Minecraft.getInstance().level?.disconnect()
+                Minecraft.getInstance().clearLevel()
+                Minecraft.getInstance().createWorldOpenFlows().loadLevel(TitleScreen(), LEVEL_NAME)
+            }
+            return
         }
         Minecraft.getInstance().execute {
             Minecraft.getInstance().apply {

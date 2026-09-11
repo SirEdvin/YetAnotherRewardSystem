@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "side": "yars:block/debug_reward_shop_side",
+    "top": "yars:block/debug_reward_shop_top",
+    "bottom": "yars:block/debug_reward_shop_bottom"
+  }
+}
