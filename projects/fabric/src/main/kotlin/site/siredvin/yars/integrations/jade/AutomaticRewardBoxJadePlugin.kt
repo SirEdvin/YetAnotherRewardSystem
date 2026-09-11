@@ -48,10 +48,10 @@ private object AutomaticRewardBoxJadeProvider : IBlockComponentProvider, IServer
         if (!accessor.serverData.contains(FIRST_COST) || !accessor.serverData.contains(RESULT)) return
         val elements = mutableListOf(tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(FIRST_COST))))
         if (accessor.serverData.contains(SECOND_COST)) {
-            elements += tooltip.elementHelper.text(Component.literal(" + ")).translate(Vec2(0f, 4f))
+            elements += tooltip.elementHelper.text(Component.literal(" + ")).translate(Vec2(0f, 6f))
             elements += tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(SECOND_COST)))
         }
-        elements += tooltip.elementHelper.text(Component.literal(" -> ")).translate(Vec2(0f, 4f))
+        elements += tooltip.elementHelper.text(Component.literal(" -> ")).translate(Vec2(0f, 6f))
         elements += tooltip.elementHelper.item(ItemStack.of(accessor.serverData.getCompound(RESULT)))
         tooltip.add(elements)
     }
