@@ -18,5 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix production Forge startup by packaging the mixin refmap and applying generated shadow mappings on clean and incremental builds. Build and release tasks now verify the packaged mappings.
 - Keep the previous valid trade catalog when scripted registration fails; preserve native offers across reloads and clear stale scripted entries between integrated worlds.
 - Align Jade trade separators with item icons.
