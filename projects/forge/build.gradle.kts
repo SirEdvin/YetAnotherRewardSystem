@@ -1,4 +1,5 @@
 import site.siredvin.peripheralium.gradle.mavenDependencies
+import java.util.zip.ZipFile
 
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
@@ -31,6 +32,36 @@ forgeShaking {
     )
     shake()
 }
+
+// MixinGradle's temporary refmap and shadow mappings must survive incremental/cache reuse.
+tasks.named<JavaCompile>("compileJava") {
+    outputs.dir(layout.buildDirectory.dir("tmp/compileJava"))
+}
+
+val verifyReleaseMixins = tasks.register("verifyReleaseMixins") {
+    dependsOn("reobfJar")
+    val releaseJar = tasks.named<Jar>("jar").flatMap { it.archiveFile }
+    inputs.file(releaseJar)
+    doLast {
+        ZipFile(releaseJar.get().asFile).use { jar ->
+            fun text(path: String): String {
+                val entry = checkNotNull(jar.getEntry(path)) { "Missing release resource: $path" }
+                return jar.getInputStream(entry).use { String(it.readBytes(), Charsets.ISO_8859_1) }
+            }
+            check(text("yars.mixins.json").contains("\"refmap\": \"yars.refmap.json\""))
+            val refmap = text("yars.refmap.json")
+            for (mixin in listOf("MerchantMenuMixin", "MerchantResultSlotMixin", "SlotAccessor", "client/MerchantScreenAccessor")) {
+                check(refmap.contains("site/siredvin/yars/mixins/$mixin")) { "Missing release mappings: $mixin" }
+            }
+            val merchant = text("site/siredvin/yars/mixins/MerchantMenuMixin.class")
+            check(merchant.contains("f_40027_") && merchant.contains("f_40028_")) {
+                "MerchantMenu shadow fields were not reobfuscated for production Forge"
+            }
+        }
+    }
+}
+tasks.named("check") { dependsOn(verifyReleaseMixins) }
+rootProject.tasks.named("githubRelease") { dependsOn(verifyReleaseMixins) }
 
 val testMod = sourceSets.create("testMod") {
     resources.srcDir(project(":core").file("src/testMod/resources"))
