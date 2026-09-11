@@ -1,3 +1,4 @@
+import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
 import site.siredvin.peripheralium.gradle.mavenDependencies
 import java.util.zip.ZipFile
 
@@ -36,6 +37,11 @@ forgeShaking {
 // MixinGradle's temporary refmap and shadow mappings must survive incremental/cache reuse.
 tasks.named<JavaCompile>("compileJava") {
     outputs.dir(layout.buildDirectory.dir("tmp/compileJava"))
+}
+
+// Register the generated shadow mappings before they exist on a clean checkout.
+tasks.withType<RenameJarInPlace>().matching { it.name == "reobfJar" }.configureEach {
+    extraMappings.from(files(layout.buildDirectory.file("tmp/compileJava/compileJava-mappings.tsrg")).builtBy(tasks.named("compileJava")))
 }
 
 val verifyReleaseMixins = tasks.register("verifyReleaseMixins") {
