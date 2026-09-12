@@ -10,6 +10,19 @@ import java.util.UUID
 class RewardShopTradeHistory internal constructor(
     private val counts: MutableMap<UUID, MutableMap<ResourceLocation, Int>> = mutableMapOf(),
 ) : SavedData() {
+    fun interface Listener {
+        fun onRewardShopTradeCompleted(playerId: UUID, tradeId: ResourceLocation)
+    }
+
+    private val listeners = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Listener, Boolean>())
+
+    fun addListener(listener: Listener) {
+        listeners += listener
+    }
+    fun removeListener(listener: Listener) {
+        listeners -= listener
+    }
+
     companion object {
         const val FILE_ID = "yars_reward_trade_history"
         internal const val VERSION_KEY = "Version"
@@ -48,6 +61,7 @@ class RewardShopTradeHistory internal constructor(
         val trades = counts.getOrPut(playerId) { mutableMapOf() }
         trades[tradeId] = completed(playerId, tradeId).coerceAtMost(Int.MAX_VALUE - 1) + 1
         setDirty()
+        listeners.toList().forEach { it.onRewardShopTradeCompleted(playerId, tradeId) }
     }
 
     override fun save(tag: CompoundTag): CompoundTag {

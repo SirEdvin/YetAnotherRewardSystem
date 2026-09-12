@@ -16,20 +16,30 @@ object AutomaticRewardBoxMenus {
 }
 
 class AutomaticRewardBoxMenu : MerchantMenu {
+    companion object {
+        const val TOGGLE_DISPLAY_BUTTON = 0
+    }
+
     constructor(id: Int, inventory: Inventory) : super(id, inventory) {
         addStorage(SimpleContainer(AutomaticRewardBoxBlockEntity.SIZE), -1)
     }
 
     constructor(id: Int, inventory: Inventory, merchant: AutomaticRewardBoxMerchant, storage: AutomaticRewardBoxBlockEntity) : super(id, inventory, merchant) {
+        box = storage
         addStorage(storage, if (storage.selectedTradeId == null) -1 else 0)
     }
 
     private val selectedTrade = DataSlot.standalone()
+    private var box: AutomaticRewardBoxBlockEntity? = null
+    private val displayEnabled = DataSlot.standalone()
+    val showTradeDisplay get() = displayEnabled.get() != 0
     val selectedTradeIndex get() = selectedTrade.get()
 
     private fun addStorage(storage: Container, initialSelection: Int) {
         selectedTrade.set(initialSelection)
         addDataSlot(selectedTrade)
+        displayEnabled.set(if (box?.showTradeDisplay != false) 1 else 0)
+        addDataSlot(displayEnabled)
         slots.take(3).forEach {
             (it as SlotAccessor).`yars$setX`(-100)
             (it as SlotAccessor).`yars$setY`(-100)
@@ -44,6 +54,19 @@ class AutomaticRewardBoxMenu : MerchantMenu {
     }
 
     override fun getType(): MenuType<*> = AutomaticRewardBoxMenus.type
+
+    override fun broadcastChanges() {
+        box?.let { displayEnabled.set(if (it.showTradeDisplay) 1 else 0) }
+        super.broadcastChanges()
+    }
+
+    override fun clickMenuButton(player: Player, id: Int): Boolean {
+        val storage = box ?: return false
+        if (id != TOGGLE_DISPLAY_BUTTON || player.containerMenu !== this || !storage.canOpen(player)) return false
+        if (!storage.setTradeDisplayEnabled(player, !storage.showTradeDisplay)) return false
+        broadcastChanges()
+        return true
+    }
     override fun setSelectionHint(selectionHint: Int) {
         super.setSelectionHint(selectionHint)
         if (selectionHint in offers.indices) selectedTrade.set(selectionHint)

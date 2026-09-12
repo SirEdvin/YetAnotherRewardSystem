@@ -1,4 +1,6 @@
 {
+  "gui.yars.trade_display.on": "Trade display: On",
+  "gui.yars.trade_display.off": "Trade display: Off",
   "config.jade.plugin_yars.automatic_reward_box": "Automatic Reward Box Trade",
   "block.yars.debug_reward_shop": "Debug Reward Shop",
   "block.yars.debug_automatic_reward_box": "Debug Automatic Reward Box"

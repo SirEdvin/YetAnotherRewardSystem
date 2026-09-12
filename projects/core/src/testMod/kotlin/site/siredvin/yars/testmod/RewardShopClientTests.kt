@@ -256,6 +256,7 @@ object YarsTests {
     fun register() {
         site.siredvin.testiarium.Testiarium.register(RewardShopClientTests::class.java)
         site.siredvin.testiarium.Testiarium.register(DebugShopClientTests::class.java)
+        site.siredvin.testiarium.Testiarium.register(AutomaticShopDisplayClientTests::class.java)
     }
 }
 
