@@ -45,8 +45,10 @@ object ClientTestHooks {
     @JvmStatic
     fun onOpenScreen(screen: Screen): Boolean {
         if (!enabled || loadedWorld || screen !is TitleScreen && screen !is AccessibilityOnboardingScreen) return false
-        loadedWorld = true
         val minecraft = Minecraft.getInstance()
+        // Fabric initializes its title screen before the first resource reload has populated renderers.
+        if (minecraft.overlay != null) return false
+        loadedWorld = true
         minecraft.options.autoJump().set(false)
         minecraft.options.cloudStatus().set(CloudStatus.OFF)
         minecraft.options.particles().set(ParticleStatus.MINIMAL)

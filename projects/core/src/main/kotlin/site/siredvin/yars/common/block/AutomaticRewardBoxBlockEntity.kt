@@ -5,6 +5,7 @@ import net.minecraft.core.Direction
 import net.minecraft.core.NonNullList
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.WorldlyContainer
@@ -31,6 +32,7 @@ class AutomaticRewardBoxBlockEntity(
 ) : BaseContainerBlockEntity(type, pos, state),
     WorldlyContainer,
     RewardShopTrades.Listener,
+    RewardShopTradeHistory.Listener,
     IOwnedBlockEntity {
     companion object {
         const val PAYMENT_SLOTS = 2
@@ -38,12 +40,20 @@ class AutomaticRewardBoxBlockEntity(
         private const val ITEMS_KEY = "Items"
         private const val SELECTED_TRADE_KEY = "SelectedTrade"
         private const val OWNER_KEY = "Owner"
+        private const val DISPLAY_ENABLED_KEY = "ShowTradeDisplay"
+        private const val DISPLAY_UPDATE_KEY = "TradeDisplay"
 
         private fun sameItem(left: ItemStack, right: ItemStack): Boolean = ItemStack.isSameItemSameTags(left, right)
     }
 
     private var items = NonNullList.withSize(SIZE, ItemStack.EMPTY)
     private var processing = false
+    private var observedHistory: RewardShopTradeHistory? = null
+    private var refreshingDisplay = false
+    var showTradeDisplay = true
+        private set
+    private var displayStacks: List<ItemStack> = emptyList()
+    val displayedItems: List<ItemStack> get() = displayStacks.map(ItemStack::copy)
     override var ownerPlayerUUID: UUID? = null
     override var player: Player?
         get() = ownerPlayerUUID?.let { level?.getPlayerByUUID(it) }
@@ -94,31 +104,108 @@ class AutomaticRewardBoxBlockEntity(
     override fun canTakeItemThroughFace(slot: Int, stack: ItemStack, direction: Direction): Boolean = slot >= PAYMENT_SLOTS
 
     override fun load(tag: CompoundTag) {
+        // Both loaders deliver vanilla block-entity updates through load; these tags are not disk saves.
+        if (tag.contains(DISPLAY_UPDATE_KEY)) {
+            val display = tag.getCompound(DISPLAY_UPDATE_KEY)
+            showTradeDisplay = display.getBoolean(DISPLAY_ENABLED_KEY)
+            displayStacks = if (showTradeDisplay) {
+                listOf("FirstCost", "SecondCost", "Result").map { ItemStack.of(display.getCompound(it)) }.filterNot(ItemStack::isEmpty)
+            } else {
+                emptyList()
+            }
+            return
+        }
         super.load(tag)
+        showTradeDisplay = !tag.contains(DISPLAY_ENABLED_KEY) || tag.getBoolean(DISPLAY_ENABLED_KEY)
+        displayStacks = emptyList()
         items = NonNullList.withSize(SIZE, ItemStack.EMPTY)
         net.minecraft.world.ContainerHelper.loadAllItems(tag.getCompound(ITEMS_KEY), items)
         selectedTradeId = ResourceLocation.tryParse(tag.getString(SELECTED_TRADE_KEY))
         ownerPlayerUUID = if (tag.hasUUID(OWNER_KEY)) tag.getUUID(OWNER_KEY) else null
+        if (level?.isClientSide == false) refreshDisplay()
     }
 
     override fun saveAdditional(tag: CompoundTag) {
         super.saveAdditional(tag)
+        tag.putBoolean(DISPLAY_ENABLED_KEY, showTradeDisplay)
         tag.put(ITEMS_KEY, CompoundTag().also { net.minecraft.world.ContainerHelper.saveAllItems(it, items) })
         selectedTradeId?.let { tag.putString(SELECTED_TRADE_KEY, it.toString()) }
         ownerPlayerUUID?.let { tag.putUUID(OWNER_KEY, it) }
     }
 
     override fun setLevel(level: Level) {
+        observedHistory?.removeListener(this)
         super.setLevel(level)
+        observeHistory()
         processTrades()
     }
 
+    override fun clearRemoved() {
+        super.clearRemoved()
+        RewardShopTrades.addListener(this)
+        observeHistory()
+        refreshDisplay()
+    }
+
+    private fun observeHistory() {
+        observedHistory = history()
+        observedHistory?.addListener(this)
+    }
+
     override fun setRemoved() {
+        observedHistory?.removeListener(this)
+        observedHistory = null
         RewardShopTrades.removeListener(this)
         super.setRemoved()
     }
 
     override fun onRewardShopTradesReplaced() = processTrades()
+
+    override fun onRewardShopTradeCompleted(playerId: UUID, tradeId: ResourceLocation) {
+        if (!isRemoved && !processing && playerId == ownerPlayerUUID && tradeId == selectedTradeId) refreshDisplay()
+    }
+
+    fun setTradeDisplayEnabled(player: Player, enabled: Boolean): Boolean {
+        if (level?.isClientSide != false || !canOpen(player)) return false
+        setTradeDisplayEnabled(enabled)
+        return true
+    }
+
+    internal fun setTradeDisplayEnabled(enabled: Boolean) {
+        if (showTradeDisplay == enabled) return
+        showTradeDisplay = enabled
+        // A cosmetic setting must not trigger the setChanged override's transaction loop.
+        super.setChanged()
+        refreshDisplay(forceUpdate = true)
+    }
+
+    internal fun refreshDisplay(history: RewardShopTradeHistory? = history(), forceUpdate: Boolean = false): Boolean {
+        if (level?.isClientSide == true || isRemoved || refreshingDisplay) return false
+        refreshingDisplay = true
+        try {
+            val trade = if (showTradeDisplay && history != null) currentTrade(history) else null
+            val next = trade?.let { listOfNotNull(it.firstCost, it.secondCost, it.result).map(ItemStack::copy) } ?: emptyList()
+            if (!forceUpdate && next.size == displayStacks.size && next.indices.all { ItemStack.matches(next[it], displayStacks[it]) }) return false
+            displayStacks = next
+            level?.sendBlockUpdated(worldPosition, blockState, blockState, 2)
+            return true
+        } finally {
+            refreshingDisplay = false
+        }
+    }
+
+    override fun getUpdateTag(): CompoundTag {
+        val display = CompoundTag()
+        display.putBoolean(DISPLAY_ENABLED_KEY, showTradeDisplay)
+        if (displayStacks.isNotEmpty()) {
+            display.put("FirstCost", displayStacks.first().save(CompoundTag()))
+            if (displayStacks.size == 3) display.put("SecondCost", displayStacks[1].save(CompoundTag()))
+            display.put("Result", displayStacks.last().save(CompoundTag()))
+        }
+        return CompoundTag().apply { put(DISPLAY_UPDATE_KEY, display) }
+    }
+
+    override fun getUpdatePacket(): ClientboundBlockEntityDataPacket = ClientboundBlockEntityDataPacket.create(this)
 
     fun selectTrade(player: Player, tradeId: ResourceLocation): Boolean {
         if (!canOpen(player)) return false
@@ -132,6 +219,7 @@ class AutomaticRewardBoxBlockEntity(
         if (runCatching { trade.resolve(history.completed(playerId, tradeId)) }.getOrNull() == null) return false
         selectedTradeId = tradeId
         setChanged()
+        refreshDisplay(history)
         return true
     }
 
@@ -174,6 +262,7 @@ class AutomaticRewardBoxBlockEntity(
             while (performTrade(history)) Unit
         } finally {
             processing = false
+            refreshDisplay(history)
         }
     }
 

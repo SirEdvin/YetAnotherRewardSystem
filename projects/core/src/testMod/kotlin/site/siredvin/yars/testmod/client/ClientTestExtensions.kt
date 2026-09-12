@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
-fun Minecraft.isRenderingStable(): Boolean = level != null && player != null
+fun Minecraft.isRenderingStable(): Boolean = level != null && player != null && overlay == null
 
 fun GameTestSequence.thenOnClient(task: Minecraft.() -> Unit): GameTestSequence {
     var future: CompletableFuture<Void>? = null

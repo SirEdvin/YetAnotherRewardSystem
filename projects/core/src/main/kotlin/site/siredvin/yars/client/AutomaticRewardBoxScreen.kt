@@ -1,6 +1,7 @@
 package site.siredvin.yars.client
 
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.inventory.MerchantScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
@@ -14,6 +15,26 @@ class AutomaticRewardBoxScreen(
     inventory: Inventory,
     title: Component,
 ) : MerchantScreen(menu, inventory, title) {
+    private lateinit var displayButton: Button
+
+    private fun displayButtonLabel(): Component = Component.translatable(
+        if ((menu as AutomaticRewardBoxMenu).showTradeDisplay) "gui.yars.trade_display.on" else "gui.yars.trade_display.off",
+    )
+
+    override fun init() {
+        super.init()
+        displayButton = addRenderableWidget(
+            Button.builder(displayButtonLabel()) {
+                minecraft?.gameMode?.handleInventoryButtonClick(menu.containerId, AutomaticRewardBoxMenu.TOGGLE_DISPLAY_BUTTON)
+            }.bounds(leftPos + 125, topPos + 56, 108, 18).build(),
+        )
+    }
+
+    override fun containerTick() {
+        super.containerTick()
+        displayButton.message = displayButtonLabel()
+    }
+
     companion object {
         @Suppress("DEPRECATION")
         private val CONTAINER_TEXTURE = ResourceLocation("textures/gui/container/generic_54.png")

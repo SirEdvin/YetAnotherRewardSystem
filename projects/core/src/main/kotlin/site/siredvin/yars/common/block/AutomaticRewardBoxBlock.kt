@@ -18,7 +18,7 @@ import site.siredvin.broccolium.modules.base.block.BaseBlockEntityBlock
 class AutomaticRewardBoxBlock(
     properties: Properties,
     override val shopId: ResourceLocation,
-    private val entityType: () -> BlockEntityType<*>,
+    val entityType: () -> BlockEntityType<*>,
 ) : BaseBlockEntityBlock<AutomaticRewardBoxBlockEntity>(false, properties),
     RewardShopTarget {
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = AutomaticRewardBoxBlockEntity(entityType(), pos, state, shopId)
