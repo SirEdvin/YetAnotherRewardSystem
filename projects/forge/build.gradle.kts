@@ -47,11 +47,13 @@ legacyForge {
         create("client") {
             client()
             gameDirectory = file("run")
+            loadedMods.add(mods.named("yars"))
         }
         create("server") {
             server()
             gameDirectory = file("run/server")
             programArgument("--nogui")
+            loadedMods.add(mods.named("yars"))
         }
         create("data") {
             data()
@@ -62,6 +64,7 @@ legacyForge {
                 "--existing", commonProject.file("src/main/resources").absolutePath,
                 "--existing", file("src/main/resources").absolutePath,
             )
+            loadedMods.add(mods.named("yars"))
         }
         create("clientGameTest") {
             client()
