@@ -11,9 +11,11 @@ Yet Another Reward System is a Minecraft 1.20.1 mod that provides KubeJS extensi
 - Loaders: Fabric Loader 0.17 and Forge 47
 - Scripting: KubeJS
 - Testing: JUnit 5 and Testiarium GameTests
-- Build system: Gradle Wrapper
+- Build system: Gradle Wrapper (Gradle 9, Loom 1.18, ModDevGradle legacy Forge); SirEdvin libraries come from Repsy
 
 ## Key Commands
+
+Start Gradle on a Java 25 JDK (`JAVA_HOME`); Minecraft compilation uses a Java 17 toolchain. Always pass `--no-daemon`.
 
 Log handling is important. Always use an explicit timeout and silently save complete output.
 

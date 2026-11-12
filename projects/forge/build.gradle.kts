@@ -167,7 +167,6 @@ val verifyReleaseMixins = tasks.register("verifyReleaseMixins") {
 tasks.named("check") { dependsOn(verifyReleaseMixins) }
 rootProject.tasks.named("githubRelease") { dependsOn(verifyReleaseMixins) }
 
-
 // modPublishing {
 //    output.set(tasks.jar)
 //    requiredDependencies.set(

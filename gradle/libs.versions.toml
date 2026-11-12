@@ -57,6 +57,8 @@ testiarium = "2.1.0"
 [libraries]
 # Base libraries
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+# Gradle 9 no longer supplies the launcher; 1.9.2 pairs with Jupiter 5.9.2.
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version = "1.9.2" }
 testiarium-core = { module = "site.siredvin:testiarium-core-1.20.1", version.ref = "testiarium" }
 testiarium-forge = { module = "site.siredvin:testiarium-forge-1.20.1", version.ref = "testiarium" }
 kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
