@@ -76,9 +76,8 @@ dependencies {
     modImplementation(libs.kubejs.fabric)
     modImplementation(libs.jade.fabric)
 
-    modRuntimeOnly(libs.bundles.externalMods.fabric.runtime) {
-        isTransitive = false
-    }
+    // REI needs its own cloth/architectury runtime dependencies to start in dev runs.
+    modRuntimeOnly(libs.bundles.externalMods.fabric.runtime)
     modRuntimeOnly(libs.modmenu)
     add("modTestModImplementation", testiariumFabric)
 }

@@ -65,6 +65,7 @@ legacyForge {
         }
         create("clientGameTest") {
             client()
+            sourceSet.set(testMod)
             gameDirectory = file("run/client-gametest")
             systemProperty("forge.enabledGameTestNamespaces", "yars_testmod")
             systemProperty("testiarium.client", "true")
@@ -111,7 +112,6 @@ dependencies {
     implementation(libs.bundles.forge.raw)
     compileOnly(commonProject)
     add(modImplementation.name, libs.bundles.forge.base)
-    add(modImplementation.name, libs.bundles.forge.cc)
     add(modImplementation.name, libs.kubejs.forge)
     add(modImplementation.name, libs.architectury.forge)
     add(modImplementation.name, libs.rhino.forge)
