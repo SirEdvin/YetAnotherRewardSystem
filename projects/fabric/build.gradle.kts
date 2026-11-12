@@ -16,7 +16,7 @@ val testiariumFabric = (dependencies.create("site.siredvin:testiarium-fabric-1.2
 
 baseShaking {
     projectPart.set("fabric")
-    integrationRepositories.set(false)
+    integrationRepositories.set(true)
     shake()
 }
 
@@ -49,9 +49,17 @@ val testMod = sourceSets.create("testMod") {
 net.fabricmc.loom.configuration.RemapConfigurations.setupForSourceSet(project, testMod)
 
 repositories {
-    maven {
-        name = "SirEdvin's Maven proxy"
-        url = uri("https://mvn.siredvin.site/minecraft")
+    maven("https://maven.latvian.dev/releases") {
+        name = "Latvian"
+        content {
+            includeGroupByRegex("dev\\.latvian.*")
+        }
+    }
+    maven("https://repo.repsy.io/siredvin/default") {
+        name = "Repsy"
+        content {
+            includeGroupByRegex("site\\.siredvin.*")
+        }
     }
 }
 
@@ -68,9 +76,8 @@ dependencies {
     modImplementation(libs.kubejs.fabric)
     modImplementation(libs.jade.fabric)
 
-    modRuntimeOnly(libs.bundles.externalMods.fabric.runtime) {
-        isTransitive = false
-    }
+    // REI needs its own cloth/architectury runtime dependencies to start in dev runs.
+    modRuntimeOnly(libs.bundles.externalMods.fabric.runtime)
     modRuntimeOnly(libs.modmenu)
     add("modTestModImplementation", testiariumFabric)
 }

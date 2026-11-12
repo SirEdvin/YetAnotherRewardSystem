@@ -1,5 +1,6 @@
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
+    id("net.fabricmc.fabric-loom-companion")
     id("site.siredvin.vanilla")
     id("site.siredvin.publishing")
 }
@@ -33,6 +34,7 @@ dependencies {
     api(libs.bundles.apicommon)
     compileOnly(libs.mixin)
     testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
     add(testMod.implementationConfigurationName, libs.testiarium.core)
     add(testMod.compileOnlyConfigurationName, libs.mixin)
 }

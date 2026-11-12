@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Build on Broccolium 2.1.0 and CC:Tweaked 1.121.0 (libs resolved from Repsy, `https://repo.repsy.io/siredvin/default`); the retired SirEdvin Maven is no longer used. Both loaders now require Broccolium 2.1.0 or newer.
+- The Forge module builds with ModDevGradle (legacy Forge) on Gradle 9; developers need a Java 25 Gradle launcher (Minecraft toolchain stays Java 17).
 - Reward shops support KubeJS-created `yars:reward_shop` block types with shop-scoped trades and persistent per-player history.
 
 ### Added
