@@ -25,6 +25,8 @@ class AutomaticRewardBoxScreen(
         graphics.blit(CONTAINER_TEXTURE, leftPos + 124, topPos + 34, 0, 7f, 17f, 108, 18, 256, 256)
     }
 
+    // The accessor interface is mixed into the screen class at runtime.
+    @Suppress("CAST_NEVER_SUCCEEDS")
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(graphics, mouseX, mouseY, partialTick)
         val selected = (menu as AutomaticRewardBoxMenu).selectedTradeIndex

@@ -1,12 +1,16 @@
 plugins {
     java
-    id("site.siredvin.root") version "0.8.26"
-    id("site.siredvin.release") version "0.8.26"
+    alias(libs.plugins.loom) apply false
+    id("org.jetbrains.kotlin.jvm") version "2.4.0" apply false
+    id("net.neoforged.moddev.legacyforge") version "2.0.142" apply false
+    id("site.siredvin.root") version "0.9.4"
+    id("site.siredvin.release") version "0.9.4"
     id("com.dorongold.task-tree") version "4.0.0"
 }
 
 subprojectShaking {
     withKotlin.set(true)
+    kotlinVersion.set("2.0.0")
 }
 
 val setupSubproject = subprojectShaking::setupSubproject
@@ -29,7 +33,10 @@ githubRelease {
 }
 
 repositories {
-    maven("https://mvn.siredvin.site/minecraft") {
-        name = "SirEdvin's Maven proxy"
+    maven("https://repo.repsy.io/siredvin/default") {
+        name = "Repsy"
+        content {
+            includeGroupByRegex("site\\.siredvin.*")
+        }
     }
 }

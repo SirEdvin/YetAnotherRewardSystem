@@ -68,8 +68,7 @@ object YarsForge {
 
     @Suppress("UNUSED_PARAMETER")
     fun commonSetup(event: FMLCommonSetupEvent) {
-        @Suppress("UNCHECKED_CAST")
-        AutomaticRewardBoxMenus.type = automaticRewardBoxMenu.get() as MenuType<MerchantMenu>
+        AutomaticRewardBoxMenus.type = automaticRewardBoxMenu.get()
     }
 
     fun creativeTabContents(event: BuildCreativeModeTabContentsEvent) {

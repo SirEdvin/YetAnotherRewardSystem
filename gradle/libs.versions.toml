@@ -6,21 +6,21 @@ kotlin-atomicfu = "0.20.2"
 
 # Gradle plugins
 sponge = "0.2.1-SNAPSHOT"
-loom = "1.12.+"
+loom = "1.18.4"
 forgegradle = "6.+"
 spotless = "6.19.0"
 
 # Core mod dependencies
-cc-tweaked = "1.116.1"
+cc-tweaked = "1.121.0"
 mixin = "0.8.5"
 
 # Optional SirEdvin libraries
-broccolium = "1.4.5"
-tweakium = "1.4.5"
-peripheralium = "1.4.5"
-broccolium-jjar = "[1.4.5, 1.5.0)"
-tweakium-jjar = "[1.4.5, 1.5.0)"
-peripheralium-jjar = "[1.4.5, 1.5.0)"
+broccolium = "2.1.0"
+tweakium = "2.1.0"
+peripheralium = "2.1.0"
+broccolium-jjar = { require = "[2.1.0]", prefer = "2.1.0" }
+tweakium-jjar = { require = "[2.1.0]", prefer = "2.1.0" }
+peripheralium-jjar = { require = "[2.1.0]", prefer = "2.1.0" }
 
 # Fabric dependencies
 fabric-api = "0.92.6+1.20.1"
@@ -51,7 +51,7 @@ byteBuddy = "1.14.2"
 hamcrest = "2.2"
 jqwik = "1.7.2"
 junit = "5.9.2"
-testiarium = "0.1.0"
+testiarium = "2.1.0"
 
 
 [libraries]

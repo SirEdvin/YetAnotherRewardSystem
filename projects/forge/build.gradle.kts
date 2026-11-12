@@ -1,52 +1,150 @@
-import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
+import net.neoforged.moddevgradle.legacyforge.dsl.ObfuscationExtension
 import site.siredvin.peripheralium.gradle.mavenDependencies
 import java.util.zip.ZipFile
 
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
+    id("net.neoforged.moddev.legacyforge")
     id("site.siredvin.publishing")
     id("site.siredvin.mod-publishing")
-    id("site.siredvin.forge")
 }
 
-val testiariumVersion = libs.versions.testiarium.get()
-val testiariumCore = configurations.detachedConfiguration(
-    dependencies.create(fg.deobf("site.siredvin:testiarium-core-1.20.1:$testiariumVersion@jar")),
-)
+val modBaseName: String by extra
+val commonProject = project(":core")
 
 baseShaking {
     projectPart.set("forge")
-    integrationRepositories.set(false)
+    integrationRepositories.set(true)
     shake()
 }
 
-forgeShaking {
-    commonProjectName.set("core")
-    useMixins.set(true)
-    useAT.set(true)
-    useJarJar.set(false)
-    extraVersionMappings.set(
-        mapOf(
-            "broccolium" to "broccolium",
-            "kubejs" to "kubejs",
-        ),
+val testMod = sourceSets.create("testMod") {
+    resources.srcDir(commonProject.file("src/testMod/resources"))
+    compileClasspath += sourceSets.main.get().compileClasspath
+    compileClasspath += sourceSets.main.get().output
+    compileClasspath += commonProject.sourceSets["testMod"].output
+    runtimeClasspath += sourceSets.main.get().runtimeClasspath
+    runtimeClasspath += sourceSets.main.get().output
+    runtimeClasspath += commonProject.sourceSets["testMod"].output
+}
+
+legacyForge {
+    enable { forgeVersion = "1.20.1-${libs.versions.forge.asProvider().get()}" }
+    parchment {
+        minecraftVersion = libs.versions.parchmentMc.get()
+        mappingsVersion = libs.versions.parchment.get()
+    }
+    validateAccessTransformers.set(true)
+    setAccessTransformers(sourceSets.main.map { it.resources.matching { include("META-INF/accesstransformer.cfg") } })
+    mods {
+        create("yars") { sourceSet(sourceSets.main.get()) }
+        create("yars_testmod") {
+            sourceSet(testMod)
+            sourceSet(commonProject.sourceSets["testMod"])
+        }
+    }
+    runs {
+        create("client") {
+            client()
+            gameDirectory = file("run")
+        }
+        create("server") {
+            server()
+            gameDirectory = file("run/server")
+            programArgument("--nogui")
+        }
+        create("data") {
+            data()
+            gameDirectory = file("run")
+            programArguments.addAll(
+                "--mod", modBaseName, "--all",
+                "--output", file("src/generated/resources").absolutePath,
+                "--existing", commonProject.file("src/main/resources").absolutePath,
+                "--existing", file("src/main/resources").absolutePath,
+            )
+        }
+        create("clientGameTest") {
+            client()
+            gameDirectory = file("run/client-gametest")
+            systemProperty("forge.enabledGameTestNamespaces", "yars_testmod")
+            systemProperty("testiarium.client", "true")
+            systemProperty("testiarium.tags", "client")
+            systemProperty("testiarium.structures", layout.buildDirectory.dir("resources/testMod/gameteststructures").get().asFile.absolutePath)
+            systemProperty("testiarium.gametest-report", layout.buildDirectory.file("test-results/client-gametest.xml").get().asFile.absolutePath)
+            systemProperty("testiarium.screenshots", layout.buildDirectory.get().asFile.absolutePath)
+            jvmArgument("-ea")
+            loadedMods.add(mods.named("yars"))
+            loadedMods.add(mods.named("yars_testmod"))
+        }
+    }
+}
+
+mixin {
+    add(sourceSets.main.get(), "$modBaseName.refmap.json")
+    config("$modBaseName.mixins.json")
+}
+
+repositories {
+    maven("https://thedarkcolour.github.io/KotlinForForge/") { content { includeGroup("thedarkcolour") } }
+    maven("https://maven.latvian.dev/releases") {
+        name = "Latvian"
+        content {
+            includeGroupByRegex("dev\\.latvian.*")
+        }
+    }
+    maven("https://maven.blamejared.com/") { content { includeGroup("mezz.jei") } }
+    maven("https://repo.repsy.io/siredvin/default") {
+        name = "Repsy"
+        content {
+            includeGroupByRegex("site\\.siredvin.*")
+        }
+    }
+}
+
+val obfuscation = extensions.getByType<ObfuscationExtension>()
+val modImplementation = configurations.getByName("modImplementation")
+val modRuntimeOnly = configurations.getByName("modRuntimeOnly")
+val modTestImplementation = obfuscation.createRemappingConfiguration(configurations.getByName(testMod.implementationConfigurationName))
+
+dependencies {
+    implementation(libs.bundles.kotlin)
+    implementation(libs.bundles.forge.raw)
+    compileOnly(commonProject)
+    add(modImplementation.name, libs.bundles.forge.base)
+    add(modImplementation.name, libs.bundles.forge.cc)
+    add(modImplementation.name, libs.kubejs.forge)
+    add(modImplementation.name, libs.architectury.forge)
+    add(modImplementation.name, libs.rhino.forge)
+    add(modImplementation.name, libs.jade.forge)
+    add(modRuntimeOnly.name, libs.bundles.externalMods.forge.runtime)
+    annotationProcessor("org.spongepowered:mixin:0.8.5:processor")
+    add(modTestImplementation.name, libs.testiarium.forge)
+    add(modTestImplementation.name, libs.testiarium.core)
+}
+
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { source(commonProject.sourceSets.main.get().allSource) }
+tasks.named<JavaCompile>("compileJava") { source(commonProject.sourceSets.main.get().allSource) }
+
+tasks.processResources {
+    from(commonProject.sourceSets.main.get().resources)
+    val versions = mapOf(
+        "version" to project.version,
+        "file" to mapOf("jarVersion" to project.version),
+        "forgeVersion" to libs.versions.forge.asProvider().get(),
+        "broccoliumVersion" to libs.versions.broccolium.asProvider().get(),
+        "kubejsVersion" to libs.versions.kubejs.get(),
     )
-    shake()
+    inputs.properties(versions)
+    inputs.file(buildFile)
+    filesMatching("META-INF/mods.toml") { expand(versions) }
+    exclude(".cache")
 }
-
-// MixinGradle's temporary refmap and shadow mappings must survive incremental/cache reuse.
-tasks.named<JavaCompile>("compileJava") {
-    outputs.dir(layout.buildDirectory.dir("tmp/compileJava"))
-}
-
-// Register the generated shadow mappings before they exist on a clean checkout.
-tasks.withType<RenameJarInPlace>().matching { it.name == "reobfJar" }.configureEach {
-    extraMappings.from(files(layout.buildDirectory.file("tmp/compileJava/compileJava-mappings.tsrg")).builtBy(tasks.named("compileJava")))
-}
+tasks.jar { manifest.attributes["MixinConfigs"] = "$modBaseName.mixins.json" }
+extra["releaseJar"] = "reobfJar"
 
 val verifyReleaseMixins = tasks.register("verifyReleaseMixins") {
     dependsOn("reobfJar")
-    val releaseJar = tasks.named<Jar>("jar").flatMap { it.archiveFile }
+    val releaseJar = tasks.named<Jar>("reobfJar").flatMap { it.archiveFile }
     inputs.file(releaseJar)
     doLast {
         ZipFile(releaseJar.get().asFile).use { jar ->
@@ -69,81 +167,6 @@ val verifyReleaseMixins = tasks.register("verifyReleaseMixins") {
 tasks.named("check") { dependsOn(verifyReleaseMixins) }
 rootProject.tasks.named("githubRelease") { dependsOn(verifyReleaseMixins) }
 
-val testMod = sourceSets.create("testMod") {
-    resources.srcDir(project(":core").file("src/testMod/resources"))
-    resources.srcDir(layout.buildDirectory.dir("generated/testiarium-core"))
-    compileClasspath += sourceSets.main.get().compileClasspath
-    compileClasspath += sourceSets.main.get().output
-    compileClasspath += project(":core").sourceSets.main.get().output
-    compileClasspath += project(":core").sourceSets["testMod"].output
-    runtimeClasspath += sourceSets.main.get().runtimeClasspath
-    runtimeClasspath += sourceSets.main.get().output
-    runtimeClasspath += project(":core").sourceSets.main.get().output
-    runtimeClasspath += project(":core").sourceSets["testMod"].output
-    compileClasspath += testiariumCore
-    runtimeClasspath += testiariumCore
-}
-
-repositories {
-    maven {
-        name = "SirEdvin's Maven proxy"
-        url = uri("https://mvn.siredvin.site/minecraft")
-    }
-}
-
-dependencies {
-    implementation(libs.bundles.kotlin)
-    implementation(libs.bundles.forge.raw)
-    libs.bundles.forge.base.get().map { implementation(fg.deobf(it)) }
-    implementation(fg.deobf(libs.kubejs.forge))
-    implementation(fg.deobf(libs.architectury.forge))
-    implementation(fg.deobf(libs.rhino.forge))
-    implementation(fg.deobf(libs.jade.forge))
-
-    libs.bundles.externalMods.forge.runtime.get().map { runtimeOnly(fg.deobf(it)) }
-}
-
-val unpackTestiariumCore = tasks.register<Sync>("unpackTestiariumCore") {
-    from(testiariumCore.map(::zipTree))
-    into(layout.buildDirectory.dir("generated/testiarium-core"))
-}
-tasks.named(testMod.processResourcesTaskName) {
-    dependsOn(unpackTestiariumCore)
-}
-
-minecraft {
-    runs {
-        create("clientGameTest") {
-            parent(runs.getByName("client"))
-            workingDirectory(file("run/client-gametest"))
-            property("forge.enabledGameTestNamespaces", "yars_testmod")
-            property("testiarium.client", "true")
-            property("testiarium.tags", "client")
-            property("testiarium.structures", layout.buildDirectory.dir("resources/testMod/gameteststructures").get().asFile.absolutePath)
-            property("testiarium.gametest-report", layout.buildDirectory.file("test-results/client-gametest.xml").get().asFile.absolutePath)
-            property("testiarium.screenshots", layout.buildDirectory.get().asFile.absolutePath)
-            jvmArgs("-ea")
-            mods {
-                create("yars") {
-                    source(sourceSets.main.get())
-                    source(project(":core").sourceSets.main.get())
-                }
-                create("yars_testmod") {
-                    source(testMod)
-                    source(project(":core").sourceSets["testMod"])
-                }
-            }
-        }
-    }
-}
-
-// ponytail: Client GameTests need Minecraft's window, not Forge's flaky early splash.
-tasks.matching { it.name == "runClientGameTest" }.configureEach {
-    doFirst {
-        file("run/client-gametest/config").mkdirs()
-        file("run/client-gametest/config/fml.toml").writeText("earlyWindowControl = false\n")
-    }
-}
 
 // modPublishing {
 //    output.set(tasks.jar)
@@ -157,12 +180,15 @@ tasks.matching { it.name == "runClientGameTest" }.configureEach {
 //    shake()
 // }
 
+configurations.named("reobfRuntimeElements") {
+    extendsFrom(configurations.implementation.get(), modImplementation)
+}
+
 publishingShaking {
     shake()
     project.publishing {
         publications {
             named<MavenPublication>("maven") {
-                fg.component(this)
                 mavenDependencies {
                     exclude(dependencies.create("site.siredvin:"))
                     exclude(libs.jei.forge.get())

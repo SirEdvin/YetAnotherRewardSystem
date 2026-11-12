@@ -20,7 +20,7 @@ object YarsTestiarium {
     private val blockEntities = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, "yars_test")
 
     @JvmStatic
-    @Suppress("DEPRECATION", "NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+    @Suppress("DEPRECATION")
     fun registerHooks() {
         listOf("reward_shop", "fletching_rewards", "cartographer_rewards").forEach { path ->
             blocks.register(path) {
@@ -34,7 +34,7 @@ object YarsTestiarium {
             AutomaticRewardBoxBlock(BlockBehaviour.Properties.of().strength(2.5f), automaticId) { type }
         }
         blockEntities.register("automatic_reward_box") {
-            BlockEntityType.Builder.of({ pos, state -> AutomaticRewardBoxBlockEntity(type, pos, state, automaticId) }, automaticBlock.get()).build(null).also { type = it }
+            BlockEntityType.Builder.of({ pos, state -> AutomaticRewardBoxBlockEntity(type, pos, state, automaticId) }, automaticBlock.get()).build(com.mojang.datafixers.DSL.remainderType()).also { type = it }
         }
         val bus = KotlinModLoadingContext.get().getKEventBus()
         blocks.register(bus)

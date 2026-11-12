@@ -171,7 +171,7 @@ class AutomaticRewardBoxBlockEntity(
         if (processing || !serverSide) return
         processing = true
         try {
-            while (performTrade(history)) Unit
+            while (performTrade(history)) { /* drain every affordable trade */ }
         } finally {
             processing = false
         }

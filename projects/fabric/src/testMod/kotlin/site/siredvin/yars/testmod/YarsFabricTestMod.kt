@@ -13,7 +13,6 @@ import site.siredvin.yars.common.block.RewardShopBlock
 import site.siredvin.yars.fabric.registerAutomaticRewardBoxStorage
 
 object YarsFabricTestMod : ModInitializer {
-    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
     override fun onInitialize() {
         listOf("reward_shop", "fletching_rewards", "cartographer_rewards").forEach { path ->
             val shopId = ResourceLocation("yars_test", path)
@@ -30,7 +29,7 @@ object YarsFabricTestMod : ModInitializer {
         type = Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE,
             automaticId,
-            BlockEntityType.Builder.of({ pos, state -> AutomaticRewardBoxBlockEntity(type, pos, state, automaticId) }, automaticBlock).build(null),
+            BlockEntityType.Builder.of({ pos, state -> AutomaticRewardBoxBlockEntity(type, pos, state, automaticId) }, automaticBlock).build(com.mojang.datafixers.DSL.remainderType()),
         )
         YarsTests.register()
         site.siredvin.testiarium.Testiarium.register(FabricAutomaticRewardBoxStorageTests::class.java)
